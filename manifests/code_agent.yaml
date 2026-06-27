@@ -1,0 +1,15 @@
+agent_id: code-agent
+permitted_tools:
+  - code_execute
+  - file_read
+  - linter_run
+forbidden_tools:
+  - email_send
+  - shell_execute
+  - network_request
+allowed_data_sources:
+  - codebase
+max_output_tokens: 8192
+external_contact: false
+can_spawn_agents: false
+max_delegation_depth: 0

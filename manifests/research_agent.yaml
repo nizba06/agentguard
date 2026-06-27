@@ -1,0 +1,16 @@
+agent_id: research-agent
+permitted_tools:
+  - web_search
+  - document_read
+  - vector_db_query
+forbidden_tools:
+  - shell_execute
+  - file_write
+  - email_send
+allowed_data_sources:
+  - internal_docs
+  - public_web
+max_output_tokens: 4096
+external_contact: false
+can_spawn_agents: true
+max_delegation_depth: 1

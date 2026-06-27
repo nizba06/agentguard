@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentguard.dev/schemas/capability_manifest.schema.json",
+  "title": "AgentGuard Capability Manifest",
+  "type": "object",
+  "required": ["agent_id", "permitted_tools"],
+  "additionalProperties": false,
+  "properties": {
+    "agent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "permitted_tools": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "default": []
+    },
+    "forbidden_tools": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "default": []
+    },
+    "allowed_data_sources": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "default": []
+    },
+    "max_output_tokens": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32768,
+      "default": 4096
+    },
+    "external_contact": {
+      "type": "boolean",
+      "default": false
+    },
+    "can_spawn_agents": {
+      "type": "boolean",
+      "default": false
+    },
+    "max_delegation_depth": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0
+    }
+  }
+}

@@ -1,0 +1,13 @@
+agent_id: orchestrator
+permitted_tools:
+  - delegate_task
+  - read_brief
+forbidden_tools:
+  - publish_external
+  - shell_execute
+allowed_data_sources:
+  - internal_brief
+max_output_tokens: 4096
+external_contact: false
+can_spawn_agents: true
+max_delegation_depth: 2

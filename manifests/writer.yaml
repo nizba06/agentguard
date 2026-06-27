@@ -1,0 +1,14 @@
+agent_id: writer
+permitted_tools:
+  - draft_report
+  - publish_internal
+forbidden_tools:
+  - publish_external
+  - shell_execute
+  - email_send
+allowed_data_sources:
+  - research_notes
+max_output_tokens: 8192
+external_contact: false
+can_spawn_agents: false
+max_delegation_depth: 0

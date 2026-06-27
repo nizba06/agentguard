@@ -1,0 +1,28 @@
+# AgentGuard project rules for Cursor AI
+
+## Project context
+AgentGuard: Python security middleware for multi-agent AI systems.
+Intercepts inter-agent messages and enforces inspection, trust, and capability controls.
+
+## Language and style
+- Python 3.11 only. Use modern syntax (match statements, | union types)
+- All public functions and classes must have type annotations (mypy strict)
+- Docstrings on all public API surfaces (Google style)
+- Line length: 100 characters max
+
+## Security rules — NEVER violate these
+- ALWAYS use PyNaCl for cryptographic signing. hashlib is for audit chaining only.
+- NEVER use os.system() or subprocess with shell=True in library code
+- NEVER log message payloads — only hashes and metadata
+- ALWAYS validate manifest YAML against JSON Schema before use
+
+## Architecture rules
+- firewall.py entry point must remain under 150 lines
+- Each security layer must be independently testable
+- Adapters import from agentguard.firewall only
+- No circular imports between modules
+
+## Testing rules
+- Every module needs a corresponding test in tests/
+- Attack fixture tests live in tests/test_integration.py
+- Use pytest.mark.asyncio for async tests

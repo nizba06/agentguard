@@ -1,0 +1,18 @@
+agent_id: comms-agent
+permitted_tools:
+  - email_send
+  - slack_post
+  - draft_message
+forbidden_tools:
+  - shell_execute
+  - code_execute
+  - file_write
+allowed_data_sources:
+  - contact_directory
+max_output_tokens: 2048
+external_contact: true
+permitted_endpoints:
+  - https://api.example.com/email
+  - https://hooks.slack.com/services/
+can_spawn_agents: false
+max_delegation_depth: 0

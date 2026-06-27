@@ -1,0 +1,13 @@
+{
+  "id": "nizbau/agentguard-deberta-risk-scorer-training",
+  "title": "AgentGuard DeBERTa Risk Scorer Training",
+  "code_file": "kaggle_notebook.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["nizbau/agentguard-training-code"],
+  "kernel_sources": [],
+  "competition_sources": []
+}

@@ -1,0 +1,15 @@
+agent_id: researcher
+permitted_tools:
+  - web_search
+  - fetch_url
+  - summarize
+forbidden_tools:
+  - publish_external
+  - shell_execute
+allowed_data_sources:
+  - public_web
+  - internal_docs
+max_output_tokens: 4096
+external_contact: false
+can_spawn_agents: false
+max_delegation_depth: 0
