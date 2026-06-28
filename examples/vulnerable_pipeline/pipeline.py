@@ -7,7 +7,6 @@ propagates to the writer agent.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Annotated, TypedDict
 
 try:
@@ -88,7 +87,11 @@ def build_graph() -> object:
     """Build the vulnerable LangGraph pipeline."""
     if not _HAS_LANGGRAPH:
         return _SequentialGraph(
-            [("orchestrator", orchestrator_node), ("researcher", researcher_node), ("writer", writer_node)],
+            [
+                ("orchestrator", orchestrator_node),
+                ("researcher", researcher_node),
+                ("writer", writer_node),
+            ],
         )
     graph = StateGraph(PipelineState)
     graph.add_node("orchestrator", orchestrator_node)

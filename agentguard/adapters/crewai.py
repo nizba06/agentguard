@@ -42,7 +42,11 @@ class CrewAIAdapter:
                 except KeyError:
                     signature = None
             decision = guard.inspect_message(
-                agent_id, "crew_task", message, payload, signature=signature,
+                agent_id,
+                "crew_task",
+                message,
+                payload,
+                signature=signature,
             )
             if decision.action in (ACTION_QUARANTINE, ACTION_BLOCK):
                 raise AgentGuardException(

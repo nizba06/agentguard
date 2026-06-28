@@ -20,6 +20,14 @@ BENIGN_TEMPLATES: tuple[str, ...] = (
     "Delegation: Assign sub-task to analyse customer churn metrics for Q2.",
 )
 
+BARE_BENIGN_IMPERATIVES: tuple[str, ...] = (
+    "Please summarise the quarterly revenue report for the finance team.",
+    "Draft section 2 using the researcher findings from the pricing analysis.",
+    "Return the top five competitor pricing changes identified in the dataset.",
+    "Confirm whether the APAC churn metrics are included in the report.",
+    "Share a brief status update on the web search progress.",
+)
+
 
 @dataclass
 class DatasetStats:
@@ -51,6 +59,7 @@ class DatasetPreparer:
         """Load, merge, split, and save train/val JSONL files."""
         examples = self._load_inject_agent()
         examples.extend(self._load_benign())
+        examples.extend(self._load_bare_benign())
         examples.extend(self._load_adversarial())
 
         rng = random.Random(self._seed)
@@ -79,12 +88,23 @@ class DatasetPreparer:
         try:
             from datasets import load_dataset  # noqa: PLC0415
 
-            ds = load_dataset("sunblaze-edgecloud/InjectAgent")
-            split_name = "train" if "train" in ds else next(iter(ds.keys()))
-            for row in ds[split_name]:
-                text = row.get("user_instruction") or row.get("text") or row.get("prompt")
-                if text:
-                    examples.append({"text": str(text), "label": 1})
+            for dataset_name in (
+                "sunblaze-edgecloud/InjectAgent",
+                "grayhat/InjectAgent",
+            ):
+                try:
+                    ds = load_dataset(dataset_name)
+                    split_name = "train" if "train" in ds else next(iter(ds.keys()))
+                    for row in ds[split_name]:
+                        text = row.get("user_instruction") or row.get("text") or row.get("prompt")
+                        if text:
+                            examples.append({"text": str(text), "label": 1})
+                    if examples:
+                        break
+                except Exception:  # noqa: BLE001
+                    continue
+            if not examples:
+                raise RuntimeError("InjectAgent not available")
         except Exception as exc:  # noqa: BLE001
             print(f"InjectAgent unavailable ({exc}); using synthetic positive examples.")
             examples.extend(self._synthetic_positive(200))
@@ -95,6 +115,14 @@ class DatasetPreparer:
             return self._read_jsonl(self._benign_path, text_key="message_text", label=0)
         print(f"{self._benign_path} not found; generating 1000 synthetic benign examples.")
         return self._synthetic_benign(1000)
+
+    def _load_bare_benign(self) -> list[dict[str, object]]:
+        """Bare task imperatives labelled benign to reduce InjectAgent-style skew."""
+        rows: list[dict[str, object]] = []
+        for idx, text in enumerate(BARE_BENIGN_IMPERATIVES):
+            rows.append({"text": text, "label": 0})
+            rows.append({"text": f"{text} (reference {idx + 1})", "label": 0})
+        return rows * 20
 
     def _load_adversarial(self) -> list[dict[str, object]]:
         if not self._adversarial_path.exists():

@@ -30,7 +30,7 @@ def sign_message(message: bytes, private_key: bytes) -> bytes:
     """
     signing_key = SigningKey(private_key)
     signed = signing_key.sign(message)
-    return signed.signature
+    return bytes(signed.signature)
 
 
 def verify_signature(message: bytes, signature: bytes, public_key: bytes) -> bool:

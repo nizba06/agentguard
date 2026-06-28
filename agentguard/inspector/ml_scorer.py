@@ -61,7 +61,10 @@ class MLRiskScorer:
 
         sess_options = ort.SessionOptions()
         sess_options.intra_op_num_threads = 2
-        providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        available = set(ort.get_available_providers())
+        providers = [p for p in ("CUDAExecutionProvider", "CPUExecutionProvider") if p in available]
+        if not providers:
+            providers = ["CPUExecutionProvider"]
         self._session = ort.InferenceSession(
             str(path),
             sess_options=sess_options,

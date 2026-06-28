@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-07-05T11:26:06.836898+00:00",
+  "batch_id": "msgbatch_01Mqsiry38ceBD8MLcxzL2pK",
+  "source": "anthropic_batch_v1",
+  "adversarial_count": 1200,
+  "benign_count": 5000,
+  "request_count": 4,
+  "models": {
+    "haiku": "claude-haiku-4-5-20251001",
+    "sonnet": "claude-sonnet-4-5-20250929"
+  },
+  "chunk_sizes": {
+    "adversarial": 20,
+    "benign": 40
+  }
+}

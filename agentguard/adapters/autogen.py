@@ -47,7 +47,11 @@ class AutoGenAdapter:
                 except KeyError:
                     signature = None
             decision = guard.inspect_message(
-                sender_id, recipient_id, text, payload, signature=signature,
+                sender_id,
+                recipient_id,
+                text,
+                payload,
+                signature=signature,
             )
             if decision.action in (ACTION_QUARANTINE, ACTION_BLOCK):
                 raise AgentGuardException(

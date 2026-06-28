@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -32,13 +33,55 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _build_training_arguments(output_dir: Path, *, quick: bool) -> Any:
+    """Build TrainingArguments compatible with installed transformers version."""
+    from transformers import TrainingArguments  # noqa: PLC0415
+
+    kwargs: dict[str, object] = {
+        "output_dir": str(output_dir),
+        "num_train_epochs": 1 if quick else 4,
+        "per_device_train_batch_size": 8 if quick else 16,
+        "per_device_eval_batch_size": 16 if quick else 32,
+        "learning_rate": 2e-5,
+        "warmup_ratio": 0.1,
+        "weight_decay": 0.01,
+        "save_strategy": "epoch",
+        "load_best_model_at_end": True,
+        "metric_for_best_model": "f1",
+        "greater_is_better": True,
+        "fp16": False,
+        "logging_steps": 25,
+        "report_to": "none",
+        "save_total_limit": 2,
+    }
+    try:
+        import torch  # noqa: PLC0415
+
+        if torch.cuda.is_available() and not quick:
+            kwargs["fp16"] = True
+    except ImportError:
+        pass
+    eval_kwargs = ("eval_strategy", "evaluation_strategy")
+    last_error: TypeError | None = None
+    for key in eval_kwargs:
+        try:
+            return TrainingArguments(**kwargs, **{key: "epoch"})
+        except TypeError as exc:
+            last_error = exc
+    msg = f"Unable to construct TrainingArguments: {last_error}"
+    raise TypeError(msg) from last_error
+
+
 def _compute_metrics(eval_pred: Any) -> dict[str, float]:
     from sklearn.metrics import precision_recall_fscore_support  # noqa: PLC0415
 
     logits, labels = eval_pred
     predictions = np.argmax(logits, axis=-1)
     precision, recall, f1, _ = precision_recall_fscore_support(
-        labels, predictions, average="binary", zero_division=0,
+        labels,
+        predictions,
+        average="binary",
+        zero_division=0,
     )
     tn = int(np.sum((predictions == 0) & (labels == 0)))
     fp = int(np.sum((predictions == 1) & (labels == 0)))
@@ -51,15 +94,26 @@ def _compute_metrics(eval_pred: Any) -> dict[str, float]:
     }
 
 
-def train_model(data_dir: str, output_dir: str) -> TrainingResult:
+def train_model(
+    data_dir: str,
+    output_dir: str,
+    *,
+    quick: bool | None = None,
+    max_train_samples: int | None = None,
+) -> TrainingResult:
     """Fine-tune DeBERTa-v3-small on prepared JSONL data."""
     from datasets import Dataset  # noqa: PLC0415
     from transformers import (  # noqa: PLC0415
         AutoModelForSequenceClassification,
         AutoTokenizer,
         Trainer,
-        TrainingArguments,
     )
+
+    if quick is None:
+        quick = os.environ.get("AGENTGUARD_TRAIN_QUICK", "").lower() in {"1", "true", "yes"}
+    if max_train_samples is None and quick:
+        max_train_samples = int(os.environ.get("AGENTGUARD_TRAIN_MAX_SAMPLES", "2000"))
+    max_length = 128 if quick else 512
 
     data_path = Path(data_dir)
     out_path = Path(output_dir)
@@ -67,6 +121,8 @@ def train_model(data_dir: str, output_dir: str) -> TrainingResult:
 
     train_rows = _load_jsonl(data_path / "train.jsonl")
     val_rows = _load_jsonl(data_path / "val.jsonl")
+    if max_train_samples and len(train_rows) > max_train_samples:
+        train_rows = train_rows[:max_train_samples]
 
     tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-v3-small")
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -77,7 +133,7 @@ def train_model(data_dir: str, output_dir: str) -> TrainingResult:
     def tokenize_batch(batch: dict[str, list[Any]]) -> dict[str, Any]:
         return tokenizer(
             batch["text"],
-            max_length=512,
+            max_length=max_length,
             truncation=True,
             padding="max_length",
         )
@@ -87,27 +143,7 @@ def train_model(data_dir: str, output_dir: str) -> TrainingResult:
     train_ds = train_ds.rename_column("label", "labels")
     val_ds = val_ds.rename_column("label", "labels")
 
-    training_kwargs: dict[str, object] = {
-        "output_dir": str(out_path),
-        "num_train_epochs": 4,
-        "per_device_train_batch_size": 16,
-        "per_device_eval_batch_size": 32,
-        "learning_rate": 2e-5,
-        "warmup_ratio": 0.1,
-        "weight_decay": 0.01,
-        "save_strategy": "epoch",
-        "load_best_model_at_end": True,
-        "metric_for_best_model": "f1",
-        "greater_is_better": True,
-        "fp16": True,
-        "logging_steps": 50,
-        "report_to": "none",
-    }
-    try:
-        args = TrainingArguments(eval_strategy="epoch", **training_kwargs)
-    except TypeError:
-        args = TrainingArguments(evaluation_strategy="epoch", **training_kwargs)
-
+    args = _build_training_arguments(out_path, quick=quick)
     trainer = Trainer(
         model=model,
         args=args,
@@ -133,6 +169,9 @@ def train_model(data_dir: str, output_dir: str) -> TrainingResult:
     )
 
     print("\n=== Training Complete ===")
+    print(f"Quick mode:              {quick}")
+    print(f"Max sequence length:     {max_length}")
+    print(f"Train samples:           {len(train_rows)}")
     print(f"Best F1:                 {result.best_f1:.4f}")
     print(f"Best Precision:          {result.best_precision:.4f}")
     print(f"Best Recall:             {result.best_recall:.4f}")

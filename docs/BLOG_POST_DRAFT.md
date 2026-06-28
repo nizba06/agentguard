@@ -1,6 +1,6 @@
 # AgentGuard: Securing Multi-Agent AI Pipelines (Blog Draft)
 
-> Fill benchmark numbers from `benchmarks/results/report.md` after evaluation completes.
+> Benchmark numbers from full evaluation run (2026-06-28).
 
 ## Title options
 
@@ -34,24 +34,34 @@ py -3.12 examples/vulnerable_pipeline/pipeline.py   # ATTACK SUCCEEDED
 py -3.12 examples/secured_pipeline/pipeline.py      # ATTACK BLOCKED
 ```
 
-## Benchmark results (TODO: paste from report.md)
+## Benchmark results
 
 | Metric | Value |
 |--------|-------|
-| Overall detection rate | _TBD_ |
-| False positive rate | _TBD_ |
-| P95 inspection latency | _TBD_ ms |
+| Overall detection rate | 95.1% |
+| False positive rate | 0.0% |
+| P95 inspection latency | 6830 ms (CPU ONNX) |
 | Adversarial examples | 1,200 |
 | Benign examples | 5,000 |
 | ML model loaded | Yes |
 
 ### Detection by attack class
 
-_Paste table from report.md § Detection Rate by Attack Class_
+| Attack Class | Examples | Detected | Detection Rate |
+|--------------|----------|----------|----------------|
+| CAPABILITY_ESCALATION | 200 | 200 | 100.0% |
+| GOAL_HIJACK | 200 | 200 | 100.0% |
+| IMPERSONATION | 200 | 199 | 99.5% |
+| INDIRECT_INJECTION | 200 | 167 | 83.5% |
+| MCP_POISONING | 200 | 186 | 93.0% |
+| PROPAGATION | 200 | 189 | 94.5% |
 
 ### Detection by layer
 
-_Paste table from report.md § Detection by Layer_
+| Layer | Attacks Caught | % of Total Detected |
+|-------|----------------|---------------------|
+| Rule Filter | 571 | 50.0% |
+| ML Scorer | 570 | 50.0% |
 
 ## Architecture diagram
 
@@ -77,8 +87,8 @@ secured = guard.wrap(my_langgraph_graph)
 
 ## Call to action
 
-- GitHub: _repo URL_
-- Hugging Face dataset: _URL_
+- GitHub: https://github.com/nizba06/agentguard
+- Hugging Face dataset: _run scripts/publish_huggingface.ps1_
 - Contributions welcome: adapters, rules, evasion reports
 
 ## References

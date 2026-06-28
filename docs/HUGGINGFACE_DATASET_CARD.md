@@ -92,6 +92,6 @@ with open("adversarial.jsonl") as f:
 @software{agentguard2026,
   title = {AgentGuard: Inter-Agent Security Middleware},
   year = {2026},
-  url = {https://github.com/ORG/agentguard}
+  url = {https://github.com/nizba06/agentguard}
 }
 ```

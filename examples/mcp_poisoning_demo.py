@@ -32,9 +32,7 @@ def main() -> None:
     try:
         wrapped("competitor pricing")
     except MCPPoisoningException as exc:
-        print(
-            f"WITH AgentGuard: ATTACK BLOCKED — MCP output risk score: {exc.risk_score:.2f}"
-        )
+        print(f"WITH AgentGuard: ATTACK BLOCKED — MCP output risk score: {exc.risk_score:.2f}")
 
 
 if __name__ == "__main__":

@@ -7,9 +7,16 @@ license = "Apache-2.0"
 readme = "README.md"
 packages = [
     { include = "agentguard" },
-    { include = "training" },
-    { include = "benchmarks" },
 ]
+include = [
+    "agentguard/models/model.sha256",
+    "agentguard/models/tokenizer.json",
+    "agentguard/models/tokenizer_config.json",
+    "agentguard/schemas/capability_manifest.schema.json",
+]
+
+[tool.poetry.scripts]
+agentguard = "agentguard.cli:main"
 
 [tool.poetry.group.training.dependencies]
 transformers = ">=4.40"
@@ -17,12 +24,13 @@ datasets = ">=2.19"
 optimum = { version = ">=1.19", extras = ["onnxruntime"] }
 scikit-learn = ">=1.4"
 accelerate = ">=0.27"
+sentencepiece = ">=0.2"
+protobuf = ">=3.20"
+tiktoken = ">=0.7"
+torch = ">=2.2"
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
-langgraph = ">=0.2"
-crewai = ">=0.70"
-pyautogen = ">=0.4"
 pynacl = ">=1.5"
 pyahocorasick = ">=2.0"
 jsonschema = ">=4.0"
@@ -32,11 +40,18 @@ transformers = ">=4.40"
 sentence-transformers = ">=2.7"
 numpy = ">=1.26"
 structlog = ">=24.0"
+langgraph = { version = ">=0.2", optional = true }
+crewai = { version = ">=0.70", optional = true }
+pyautogen = { version = ">=0.4", optional = true }
 opentelemetry-sdk = { version = ">=1.24", optional = true }
 opentelemetry-exporter-otlp = { version = ">=1.24", optional = true }
 
 [tool.poetry.extras]
 otel = ["opentelemetry-sdk", "opentelemetry-exporter-otlp"]
+langgraph = ["langgraph"]
+crewai = ["crewai"]
+autogen = ["pyautogen"]
+all = ["langgraph", "crewai", "pyautogen"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.0"
@@ -60,6 +75,16 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+exclude = [
+    "kaggle-verify",
+    "kaggle-model-pull",
+    "kaggle-output",
+    "kaggle-output-check",
+    "kaggle-v8-output",
+    "kaggle-pull",
+    "kaggle-status-pull",
+    "kaggle-dataset-dl",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "S"]
@@ -75,6 +100,8 @@ ignore = ["S101"]
 python_version = "3.11"
 strict = true
 ignore_missing_imports = true
+explicit_package_bases = true
+mypy_path = "."
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

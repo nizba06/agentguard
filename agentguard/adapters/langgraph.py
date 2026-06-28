@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import functools
+from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
 from agentguard.exceptions import AgentGuardException
@@ -15,6 +16,11 @@ class LangGraphAdapter:
     @staticmethod
     def wrap(guard: AgentGuard, graph: Any) -> Any:
         """Wrap a compiled LangGraph graph with message inspection.
+
+        LangGraph 1.x executes nodes via ``PregelNode.bound.func``, not
+        ``PregelNode.invoke`` or a replaceable ``nodes`` dict. We patch
+        node specs in place so the compiled graph's internal references
+        stay valid.
 
         Args:
             guard: Configured AgentGuard instance.
@@ -30,62 +36,105 @@ class LangGraphAdapter:
             msg = "Expected a compiled LangGraph graph with a nodes mapping"
             raise TypeError(msg)
 
-        wrapped: dict[str, Any] = {}
-        for name, spec in dict(graph.nodes).items():
-            runnable = LangGraphAdapter._extract_runnable(spec)
-            wrapped[name] = LangGraphAdapter._guard_node(guard, name, runnable, spec)
-        graph.nodes = wrapped
+        for name, spec in list(graph.nodes.items()):
+            LangGraphAdapter._apply_guard(guard, name, spec, graph)
         return graph
 
     @staticmethod
-    def _extract_runnable(node_spec: Any) -> Callable[..., Any]:
-        if callable(node_spec):
-            return cast(Callable[..., Any], node_spec)
-        if hasattr(node_spec, "invoke"):
-            return cast(Callable[..., Any], node_spec.invoke)
-        msg = f"Unsupported node spec: {type(node_spec)!r}"
+    def _apply_guard(
+        guard: AgentGuard,
+        node_name: str,
+        spec: Any,
+        graph: Any,
+    ) -> None:
+        """Patch a single node spec in place (PregelNode, callable, or invoke)."""
+        bound = getattr(spec, "bound", None)
+        if bound is not None:
+            if hasattr(bound, "func") and callable(bound.func):
+                bound.func = LangGraphAdapter._wrap_runnable(guard, node_name, bound.func)
+                return
+            if hasattr(bound, "afunc") and callable(bound.afunc):
+                bound.afunc = LangGraphAdapter._wrap_runnable_async(guard, node_name, bound.afunc)
+                return
+
+        if callable(spec):
+            graph.nodes[node_name] = LangGraphAdapter._wrap_runnable(guard, node_name, spec)
+            return
+
+        if hasattr(spec, "invoke"):
+            spec.invoke = LangGraphAdapter._wrap_runnable(guard, node_name, spec.invoke)
+            return
+
+        msg = f"Unsupported LangGraph node spec for {node_name!r}: {type(spec)!r}"
         raise TypeError(msg)
 
     @staticmethod
-    def _guard_node(
+    def _wrap_runnable(
         guard: AgentGuard,
         node_name: str,
         runnable: Callable[..., Any],
-        node_spec: Any,
-    ) -> Any:
+    ) -> Callable[..., Any]:
+        @functools.wraps(runnable)
         def guarded(state: dict[str, Any], *args: object, **kwargs: object) -> dict[str, Any]:
-            result = runnable(state, *args, **kwargs) if args or kwargs else runnable(state)
-            if not isinstance(result, dict):
-                return cast(dict[str, Any], result)
-            messages = result.get("messages")
-            if not isinstance(messages, list):
-                return result
+            if args or kwargs:
+                result = runnable(state, *args, **kwargs)
+            else:
+                result = runnable(state)
+            return LangGraphAdapter._inspect_node_output(guard, node_name, result)
 
-            for msg in messages:
-                parsed = LangGraphAdapter._parse_message(msg, node_name)
-                if parsed is None:
-                    continue
-                sender, recipient, text, payload, signature = parsed
-                decision = guard.inspect_message(
-                    sender, recipient, text, payload, signature=signature,
-                )
-                if decision.action in (ACTION_QUARANTINE, ACTION_BLOCK):
-                    raise AgentGuardException(
-                        action=decision.action,
-                        sender_id=sender,
-                        recipient_id=recipient,
-                        risk_score=decision.risk_score,
-                        trust_result=decision.trust_result,
-                        capability_result=decision.capability_result,
-                        failure_reason=decision.failure_reason,
-                    )
+        return guarded
+
+    @staticmethod
+    def _wrap_runnable_async(
+        guard: AgentGuard,
+        node_name: str,
+        runnable: Callable[..., Awaitable[Any]],
+    ) -> Callable[..., Awaitable[Any]]:
+        @functools.wraps(runnable)
+        async def guarded(state: dict[str, Any], *args: object, **kwargs: object) -> dict[str, Any]:
+            if args or kwargs:
+                result = await runnable(state, *args, **kwargs)
+            else:
+                result = await runnable(state)
+            return LangGraphAdapter._inspect_node_output(guard, node_name, result)
+
+        return guarded
+
+    @staticmethod
+    def _inspect_node_output(
+        guard: AgentGuard,
+        node_name: str,
+        result: Any,
+    ) -> dict[str, Any]:
+        if not isinstance(result, dict):
+            return cast(dict[str, Any], result)
+        messages = result.get("messages")
+        if not isinstance(messages, list):
             return result
 
-        if callable(node_spec):
-            return guarded
-        if hasattr(node_spec, "invoke"):
-            node_spec.invoke = guarded
-        return node_spec
+        for msg in messages:
+            parsed = LangGraphAdapter._parse_message(msg, node_name)
+            if parsed is None:
+                continue
+            sender, recipient, text, payload, signature = parsed
+            decision = guard.inspect_message(
+                sender,
+                recipient,
+                text,
+                payload,
+                signature=signature,
+            )
+            if decision.action in (ACTION_QUARANTINE, ACTION_BLOCK):
+                raise AgentGuardException(
+                    action=decision.action,
+                    sender_id=sender,
+                    recipient_id=recipient,
+                    risk_score=decision.risk_score,
+                    trust_result=decision.trust_result,
+                    capability_result=decision.capability_result,
+                    failure_reason=decision.failure_reason,
+                )
+        return result
 
     @staticmethod
     def _parse_message(

@@ -7,7 +7,7 @@ from typing import Any
 
 import numpy as np
 
-DEFAULT_THRESHOLD = 0.35
+DEFAULT_THRESHOLD = 0.10
 DEFAULT_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 

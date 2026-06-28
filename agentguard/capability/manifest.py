@@ -10,11 +10,29 @@ from typing import Any, cast
 import jsonschema
 import yaml
 
-_SCHEMA_PATH = Path(__file__).resolve().parents[2] / "schemas" / "capability_manifest.schema.json"
+_SCHEMA_NAME = "capability_manifest.schema.json"
+
+
+def _schema_path() -> Path:
+    """Resolve JSON Schema from the installed package (pip-safe)."""
+    package_root = Path(__file__).resolve().parents[1]
+    bundled = package_root / "schemas" / _SCHEMA_NAME
+    if bundled.is_file():
+        return bundled
+    # Legacy repo layout: schemas/ at repository root (editable checkouts)
+    repo_root = package_root.parent
+    legacy = repo_root / "schemas" / _SCHEMA_NAME
+    if legacy.is_file():
+        return legacy
+    msg = (
+        f"Capability manifest schema not found. Tried: {bundled}, {legacy}. "
+        "Reinstall agentguard or ensure agentguard/schemas/ is present."
+    )
+    raise FileNotFoundError(msg)
 
 
 def _load_schema() -> dict[str, Any]:
-    with _SCHEMA_PATH.open(encoding="utf-8") as handle:
+    with _schema_path().open(encoding="utf-8") as handle:
         return cast(dict[str, Any], json.load(handle))
 
 
@@ -26,6 +44,7 @@ class CapabilityManifest:
     permitted_tools: list[str] = field(default_factory=list)
     forbidden_tools: list[str] = field(default_factory=list)
     allowed_data_sources: list[str] = field(default_factory=list)
+    permitted_endpoints: list[str] = field(default_factory=list)
     max_output_tokens: int = 4096
     external_contact: bool = False
     can_spawn_agents: bool = False
@@ -52,11 +71,17 @@ class CapabilityManifest:
             msg = f"Invalid manifest YAML in {yaml_path}"
             raise ValueError(msg)
         jsonschema.validate(instance=data, schema=_load_schema())
+        return cls.from_dict(data)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CapabilityManifest:
+        """Build a manifest from an already-validated dictionary."""
         return cls(
             agent_id=str(data["agent_id"]),
             permitted_tools=list(data.get("permitted_tools", [])),
             forbidden_tools=list(data.get("forbidden_tools", [])),
             allowed_data_sources=list(data.get("allowed_data_sources", [])),
+            permitted_endpoints=list(data.get("permitted_endpoints", [])),
             max_output_tokens=int(data.get("max_output_tokens", 4096)),
             external_contact=bool(data.get("external_contact", False)),
             can_spawn_agents=bool(data.get("can_spawn_agents", False)),
@@ -68,6 +93,22 @@ class CapabilityManifest:
         if tool_name in self.forbidden_tools:
             return False
         return tool_name in self.permitted_tools
+
+    def is_endpoint_permitted(self, endpoint: str) -> bool:
+        """Return True if external contact is allowed and endpoint matches a prefix."""
+        if not self.external_contact:
+            return False
+        if not self.permitted_endpoints:
+            return False
+        return any(endpoint.startswith(allowed) for allowed in self.permitted_endpoints)
+
+    def is_data_source_allowed(self, data_source: str) -> bool:
+        """Return True if the data source is explicitly listed.
+
+        An empty ``allowed_data_sources`` list is deny-by-default so that
+        attenuation intersections cannot accidentally expand access.
+        """
+        return data_source in self.allowed_data_sources
 
     def attenuate(self, other: CapabilityManifest) -> CapabilityManifest:
         """Return monotonic attenuation: intersection of both manifests.
@@ -87,6 +128,9 @@ class CapabilityManifest:
             forbidden_tools=forbidden,
             allowed_data_sources=sorted(
                 set(self.allowed_data_sources) & set(other.allowed_data_sources),
+            ),
+            permitted_endpoints=sorted(
+                set(self.permitted_endpoints) & set(other.permitted_endpoints),
             ),
             max_output_tokens=min(self.max_output_tokens, other.max_output_tokens),
             external_contact=self.external_contact and other.external_contact,

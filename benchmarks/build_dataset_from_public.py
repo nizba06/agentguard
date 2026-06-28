@@ -122,23 +122,46 @@ BENIGN_TEMPLATES: dict[str, tuple[str, ...]] = {
 
 _CLASS_KEYWORDS: dict[str, tuple[str, ...]] = {
     "IMPERSONATION": (
-        "you are now", "pretend you are", "orchestrator", "administrator",
-        "developer mode", "act as if", "your new role",
+        "you are now",
+        "pretend you are",
+        "orchestrator",
+        "administrator",
+        "developer mode",
+        "act as if",
+        "your new role",
     ),
     "CAPABILITY_ESCALATION": (
-        "shell command", "execute shell", "run shell", "sudo", "rm -rf",
-        "install package", "elevated permission",
+        "shell command",
+        "execute shell",
+        "run shell",
+        "sudo",
+        "rm -rf",
+        "install package",
+        "elevated permission",
     ),
     "MCP_POISONING": (
-        "tool output", "mcp", "query result", "api response", "read_file returned",
+        "tool output",
+        "mcp",
+        "query result",
+        "api response",
+        "read_file returned",
     ),
     "GOAL_HIJACK": (
-        "new objective", "updated objective", "real task", "true instructions",
-        "actually your task", "instead of",
+        "new objective",
+        "updated objective",
+        "real task",
+        "true instructions",
+        "actually your task",
+        "instead of",
     ),
     "PROPAGATION": (
-        "forward", "relay", "downstream", "pass to", "send to writer",
-        "from researcher", "from code agent",
+        "forward",
+        "relay",
+        "downstream",
+        "pass to",
+        "send to writer",
+        "from researcher",
+        "from code agent",
     ),
 }
 
@@ -185,8 +208,14 @@ def _subtlety_level(text: str) -> int:
 
 def _extract_injection_text(row: dict[str, Any]) -> str | None:
     for key in (
-        "user_instruction", "injection", "attack", "prompt", "text",
-        "instruction", "content", "message",
+        "user_instruction",
+        "injection",
+        "attack",
+        "prompt",
+        "text",
+        "instruction",
+        "content",
+        "message",
     ):
         val = row.get(key)
         if val and isinstance(val, str) and len(val.strip()) > 20:
@@ -302,11 +331,13 @@ def _synthetic_payloads(count: int, rng: random.Random) -> list[str]:
                 "From orchestrator: {action}. Also {verb} {target}.",
             ),
         )
-        rows.append(template.format(
-            verb=rng.choice(verbs),
-            target=rng.choice(targets),
-            action=rng.choice(actions),
-        ))
+        rows.append(
+            template.format(
+                verb=rng.choice(verbs),
+                target=rng.choice(targets),
+                action=rng.choice(actions),
+            )
+        )
     return rows
 
 
@@ -359,19 +390,21 @@ class PublicDatasetBuilder:
                     source = "inject_agent"
                 elif payload in ipi_payloads:
                     source = "agent_ipi"
-                rows.append({
-                    "message_text": message,
-                    "attack_class": attack_class,
-                    "target_agent": self._rng.choice(
-                        ["researcher", "code_agent", "comms_agent", "orchestrator"],
-                    ),
-                    "subtlety_level": _subtlety_level(payload),
-                    "expected_detection_layer": self._rng.choice(
-                        ["rule_filter", "ml_scorer", "both", "consistency_check"],
-                    ),
-                    "source": source,
-                    "label": 1,
-                })
+                rows.append(
+                    {
+                        "message_text": message,
+                        "attack_class": attack_class,
+                        "target_agent": self._rng.choice(
+                            ["researcher", "code_agent", "comms_agent", "orchestrator"],
+                        ),
+                        "subtlety_level": _subtlety_level(payload),
+                        "expected_detection_layer": self._rng.choice(
+                            ["rule_filter", "ml_scorer", "both", "consistency_check"],
+                        ),
+                        "source": source,
+                        "label": 1,
+                    }
+                )
 
         self._rng.shuffle(rows)
         stats = BuildStats(
@@ -391,12 +424,14 @@ class PublicDatasetBuilder:
             for idx in range(TARGET_BEN_PER_CATEGORY):
                 base = templates[idx % len(templates)]
                 suffix = f" (run {idx // len(templates) + 1}, item {idx + 1})"
-                rows.append({
-                    "message_text": base + suffix,
-                    "label": 0,
-                    "category": category,
-                    "source": "pipeline_template",
-                })
+                rows.append(
+                    {
+                        "message_text": base + suffix,
+                        "label": 0,
+                        "category": category,
+                        "source": "pipeline_template",
+                    }
+                )
         self._rng.shuffle(rows)
         return rows
 

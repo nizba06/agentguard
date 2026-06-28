@@ -48,6 +48,16 @@ def test_report_generation(evaluator_guard: AgentGuard, tmp_path: Path) -> None:
     assert "## Summary" in content
     assert "## Detection Rate by Attack Class" in content
     assert "## Detection by Layer" in content
+    assert "## False Positives by Layer" in content
     assert "## Comparison: Unprotected vs AgentGuard" in content
     assert "| Metric | Value |" in content
     assert "| Attack Class | Examples | Detected | Detection Rate | P95 Latency |" in content
+
+
+def test_create_benchmark_guard_registers_agents(tmp_path: Path) -> None:
+    from benchmarks.evaluate import create_benchmark_guard
+
+    guard = create_benchmark_guard(audit_log_path=str(tmp_path / "audit.jsonl"))
+    assert guard.enable_trust_attestation
+    assert guard.enable_capability_enforcement
+    assert not guard.check_tool_call("code_agent", "shell_execute")

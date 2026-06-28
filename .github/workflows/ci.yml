@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[all,otel]"
+          pip install pytest pytest-asyncio pytest-cov hypothesis ruff mypy \
+            types-PyYAML types-jsonschema
+
+      - name: Ruff
+        run: ruff check .
+
+      - name: Mypy
+        run: mypy agentguard
+
+      - name: Pytest
+        run: pytest
+
+      - name: Quick benchmark smoke test
+        run: python benchmarks/evaluate.py --quick
+
+      - name: Verify model artifacts (optional)
+        continue-on-error: true
+        run: python scripts/verify_model.py

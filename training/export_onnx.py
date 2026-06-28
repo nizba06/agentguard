@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import shutil
+import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -46,28 +48,122 @@ def _softmax(logits: np.ndarray) -> np.ndarray:
     return exp / np.sum(exp, axis=-1, keepdims=True)
 
 
+def _require_checkpoint_weights(checkpoint: Path) -> None:
+    has_weights = any(checkpoint.glob("*.safetensors")) or any(checkpoint.glob("pytorch_model.bin"))
+    if not has_weights:
+        msg = (
+            f"No model weights found in {checkpoint}. "
+            "Run training/train.py successfully before export."
+        )
+        raise FileNotFoundError(msg)
+
+
+def _export_with_optimum_cli(checkpoint: Path, staging_dir: Path) -> Path | None:
+    staging_dir.mkdir(parents=True, exist_ok=True)
+    commands = (
+        [
+            sys.executable,
+            "-m",
+            "optimum.cli",
+            "export",
+            "onnx",
+            "--model",
+            str(checkpoint),
+            "--task",
+            "text-classification",
+            str(staging_dir),
+        ],
+        [
+            "optimum-cli",
+            "export",
+            "onnx",
+            "--model",
+            str(checkpoint),
+            "--task",
+            "text-classification",
+            str(staging_dir),
+        ],
+    )
+    for cmd in commands:
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        except FileNotFoundError:
+            continue
+        if result.returncode == 0:
+            onnx_files = sorted(staging_dir.glob("*.onnx"))
+            if onnx_files:
+                return onnx_files[0]
+    return None
+
+
+def _export_with_torch(checkpoint: Path, dest_onnx: Path) -> None:
+    import torch  # noqa: PLC0415
+    from torch import nn  # noqa: PLC0415
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer  # noqa: PLC0415
+
+    model = AutoModelForSequenceClassification.from_pretrained(str(checkpoint))
+    tokenizer = AutoTokenizer.from_pretrained(str(checkpoint))
+    model.eval()
+
+    encoded = tokenizer(
+        "warmup",
+        return_tensors="pt",
+        max_length=512,
+        truncation=True,
+        padding="max_length",
+    )
+    input_ids = encoded["input_ids"]
+    attention_mask = encoded["attention_mask"]
+
+    class _OnnxWrapper(nn.Module):
+        def __init__(self, inner: nn.Module) -> None:
+            super().__init__()
+            self.inner = inner
+
+        def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+            return self.inner(input_ids=input_ids, attention_mask=attention_mask).logits
+
+    wrapped = _OnnxWrapper(model)
+    dest_onnx.parent.mkdir(parents=True, exist_ok=True)
+    torch.onnx.export(
+        wrapped,
+        (input_ids, attention_mask),
+        str(dest_onnx),
+        input_names=["input_ids", "attention_mask"],
+        output_names=["logits"],
+        dynamic_axes={
+            "input_ids": {0: "batch", 1: "sequence"},
+            "attention_mask": {0: "batch", 1: "sequence"},
+            "logits": {0: "batch"},
+        },
+        opset_version=14,
+    )
+
+
 def export_to_onnx(checkpoint_dir: str, output_path: str) -> ExportResult:
     """Export checkpoint to ONNX, copy to agentguard/models, benchmark latency."""
-    from optimum.onnxruntime import ORTModelForSequenceClassification  # noqa: PLC0415
     from transformers import AutoTokenizer  # noqa: PLC0415
 
     checkpoint = Path(checkpoint_dir)
-    output = Path(output_path)
-    output.mkdir(parents=True, exist_ok=True)
-
-    model = ORTModelForSequenceClassification.from_pretrained(str(checkpoint), export=True)
-    model.save_pretrained(str(output))
-
-    onnx_files = list(output.glob("*.onnx"))
-    if not onnx_files:
-        msg = f"No ONNX file produced in {output}"
+    if not checkpoint.exists():
+        msg = f"Checkpoint directory not found: {checkpoint_dir}"
         raise FileNotFoundError(msg)
-    source_onnx = onnx_files[0]
+    _require_checkpoint_weights(checkpoint)
 
     models_dir = Path("agentguard/models")
     models_dir.mkdir(parents=True, exist_ok=True)
     dest_onnx = models_dir / "risk_scorer.onnx"
-    shutil.copy2(source_onnx, dest_onnx)
+
+    staging_dir = Path(output_path) / "_onnx_staging"
+    if staging_dir.exists():
+        shutil.rmtree(staging_dir)
+
+    source_onnx = _export_with_optimum_cli(checkpoint, staging_dir)
+    if source_onnx is not None:
+        shutil.copy2(source_onnx, dest_onnx)
+        shutil.rmtree(staging_dir, ignore_errors=True)
+    else:
+        _export_with_torch(checkpoint, dest_onnx)
 
     sha256 = _sha256_file(dest_onnx)
     (models_dir / "model.sha256").write_text(sha256 + "\n", encoding="utf-8")
@@ -85,7 +181,8 @@ def export_to_onnx(checkpoint_dir: str, output_path: str) -> ExportResult:
         truncation=True,
         padding="max_length",
     )
-    feed = {key: val for key, val in dummy.items() if key in {i.name for i in session.get_inputs()}}
+    input_names = {item.name for item in session.get_inputs()}
+    feed = {key: val for key, val in dummy.items() if key in input_names}
 
     for _ in range(10):
         session.run(None, feed)
@@ -102,8 +199,14 @@ def export_to_onnx(checkpoint_dir: str, output_path: str) -> ExportResult:
     for label, samples in (("INJECTION", INJECTION_SAMPLES), ("BENIGN", BENIGN_SAMPLES)):
         print(f"\n{label}:")
         for text in samples:
-            inputs = tokenizer(text, return_tensors="np", max_length=512, truncation=True, padding="max_length")
-            inp = {k: v for k, v in inputs.items() if k in {i.name for i in session.get_inputs()}}
+            inputs = tokenizer(
+                text,
+                return_tensors="np",
+                max_length=512,
+                truncation=True,
+                padding="max_length",
+            )
+            inp = {k: v for k, v in inputs.items() if k in input_names}
             logits = session.run(None, inp)[0]
             prob = float(_softmax(logits)[0, 1])
             print(f"  [{prob:.3f}] {text[:70]}...")

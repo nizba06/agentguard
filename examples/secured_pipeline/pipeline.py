@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from agentguard import AgentGuard, AgentGuardException, CapabilityManifest
-from examples.vulnerable_pipeline.pipeline import INJECTED_INSTRUCTION, run_pipeline
+from examples.vulnerable_pipeline.pipeline import INJECTED_INSTRUCTION
 
 
 def _manifest(name: str) -> CapabilityManifest:
@@ -20,6 +20,13 @@ def run_secured_pipeline(task: str = "Analyse Q3 competitor pricing") -> str | N
     guard = AgentGuard(
         audit_log_path=str(Path(__file__).resolve().parents[2] / "audit.jsonl"),
         enable_trust_attestation=True,
+        task_objective=(
+            "Multi-agent pipeline: analyse Q3 competitor pricing, delegate sub-tasks, "
+            "share status updates and tool outputs, and draft internal reports."
+        ),
+        consistency_threshold=0.10,
+        consistency_ml_risk_floor=0.15,
+        require_ml_model=True,
     )
     guard.register_agent("orchestrator", _manifest("orchestrator"))
     guard.register_agent("researcher", _manifest("researcher"))

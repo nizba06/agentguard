@@ -35,7 +35,9 @@ def test_wrap_payload_includes_framing() -> None:
 @patch("benchmarks.build_dataset_from_public._load_inject_agent")
 def test_build_adversarial_count(mock_inject, mock_ipi, tmp_path: Path) -> None:
     del mock_ipi
-    mock_inject.return_value = [f"injection payload number {i} ignore previous instructions" for i in range(500)]
+    mock_inject.return_value = [
+        f"injection payload number {i} ignore previous instructions" for i in range(500)
+    ]
     builder = PublicDatasetBuilder(output_dir=tmp_path, seed=42)
     rows, stats = builder.build_adversarial()
     assert len(rows) == 1200
