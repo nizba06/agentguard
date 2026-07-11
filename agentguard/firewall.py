@@ -28,8 +28,9 @@ MAX_MESSAGE_BYTES = 1_048_576
 
 _MODEL_INSTALL_HINT = (
     "Install the ONNX model for enforce-mode ML scoring: "
-    "see README 'Production setup' or run scripts/install_model "
-    "(PowerShell: .\\scripts\\install_model.ps1; Bash: ./scripts/install_model.sh)."
+    "python scripts/download_release_model.py "
+    "(or copy artifacts via scripts/install_model.ps1 / install_model.sh). "
+    "See README 'Production setup' and docs/source/latency.md for rules-only / monitor modes."
 )
 
 F = TypeVar("F", bound=Callable[..., Any])

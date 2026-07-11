@@ -69,7 +69,7 @@ def _cmd_status(args: argparse.Namespace) -> int:
         print(f"model_present: {loaded}")
         if missing:
             print(f"missing_files: {', '.join(missing)}")
-            print("Install: see README Production setup or ./scripts/install_model.sh")
+            print("Install: python scripts/download_release_model.py")
     return 0 if loaded else 1
 
 

@@ -7,7 +7,7 @@ license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://github.com/nizba06/agentguard"
 repository = "https://github.com/nizba06/agentguard"
-documentation = "https://github.com/nizba06/agentguard#readme"
+documentation = "https://inter-agent-guard.readthedocs.io/"
 keywords = ["agents", "security", "firewall", "langgraph", "prompt-injection", "multi-agent"]
 # Distribution name is inter-agent-guard (PyPI); import remains agentguard.
 packages = [
@@ -69,6 +69,14 @@ pre-commit = ">=3.7"
 types-PyYAML = ">=6.0"
 types-jsonschema = ">=4.0"
 anthropic = ">=0.40"
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+sphinx = ">=7.2"
+sphinx-rtd-theme = ">=2.0"
+myst-parser = ">=3.0"
 
 [tool.poetry.group.training]
 optional = true

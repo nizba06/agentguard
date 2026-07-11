@@ -36,3 +36,4 @@ agentguard/models/risk_scorer.onnx
 credentials.json
 secrets.json
 .pypirc
+docs/_build/

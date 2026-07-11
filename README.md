@@ -2,6 +2,9 @@
 
 Inter-agent security firewall for multi-agent AI systems (LangGraph, CrewAI, AutoGen).
 
+**PyPI:** `pip install inter-agent-guard` · **Import / CLI:** `agentguard`  
+**Docs:** [Read the Docs](https://inter-agent-guard.readthedocs.io/) · [Blog post](docs/BLOG_POST.md) · [Demo](https://github.com/nizba06/inter-agent-guard-demo)
+
 AgentGuard intercepts every message between agents and enforces three runtime controls:
 
 1. **Message Inspector** — Aho-Corasick rule filter + DeBERTa ML scorer + consistency check
@@ -12,20 +15,15 @@ AgentGuard intercepts every message between agents and enforces three runtime co
 
 ```bash
 # Python 3.11 or 3.12
-# PyPI distribution name (import package is still agentguard)
 pip install "inter-agent-guard[all,otel]"
-# from a clone: pip install -e ".[all,otel]"
+# ONNX weights are not in the wheel (~540 MB) — from a clone:
+python scripts/download_release_model.py
+# or: download risk_scorer.onnx + model.sha256 from GitHub Releases into agentguard/models/
 
 agentguard status
 agentguard check-manifest manifests/comms_agent.yaml
 agentguard inspect -m "Summarise public pricing data from filings."
 ```
-
-```python
-from agentguard import AgentGuard, CapabilityManifest
-```
-
-Download `risk_scorer.onnx` + `model.sha256` from the [GitHub Releases](https://github.com/nizba06/agentguard/releases) page, install into the package `models/` directory (or pass `model_path=`), then set `require_ml_model=True` for production enforce-mode.
 
 > **Note:** The PyPI project is `inter-agent-guard` because bare `agentguard` collides with existing `agent-guard` under PyPI’s name rules. The Python import and CLI remain `agentguard`.
 
@@ -37,7 +35,7 @@ guard = AgentGuard(
     task_objective="Analyse Q3 competitor pricing",
     audit_log_path="./audit.jsonl",
     # Set True in production after installing the ONNX model
-    require_ml_model=False,
+    require_ml_model=True,
 )
 guard.register_agent(
     "research-agent",
@@ -46,25 +44,44 @@ guard.register_agent(
 secured_graph = guard.wrap(my_langgraph_graph)
 ```
 
-Without the ONNX model, rule filtering and trust attestation still run; ML scoring is inactive. For production enforce-mode, install the model (next section) and set `require_ml_model=True`.
+Without the ONNX model, rule filtering and trust attestation still run; ML scoring is inactive.
+
+## Latency and deployment modes
+
+CPU ONNX P95 is ~0.8–1.1 s (design target was 15 ms). Choose a mode that fits your budget:
+
+| Mode | How | When |
+|------|-----|------|
+| **Rules-only** | `require_ml_model=False` (no ONNX) | Lowest latency; patterns + capability + trust |
+| **Monitor** | `mode="monitor"` | Shadow deploy; audit without blocking |
+| **Enforce + ML (CPU)** | `require_ml_model=True` | Highest detection; accept ~1 s P95 |
+| **Enforce + ML (GPU)** | Install `onnxruntime-gpu` | Lower ML latency when CUDA is available |
+| **Async / selective hops** | Rules on hot path; ML off-path | High-frequency graphs |
+
+Full guide: [docs/source/latency.md](docs/source/latency.md).
 
 ## Production setup
 
 1. **Install the ML model** (required for enforce-mode ML scoring):
 
    ```bash
-   # Bash — after training or downloading artifacts
-   ./scripts/install_model.sh ./path/to/model/dir
+   python scripts/download_release_model.py
    python scripts/verify_model.py
    ```
 
    ```powershell
-   # PowerShell
-   .\scripts\install_model.ps1 -SourceDir .\path\to\model\dir
+   py -3.12 scripts\download_release_model.py
    py -3.12 scripts\verify_model.py
    ```
 
-   Sources: local training (`./scripts/run_training.ps1 -Full`) or Kaggle download (`.\scripts\download_kaggle_model.ps1`).
+   Or copy artifacts you already have:
+
+   ```bash
+   ./scripts/install_model.sh ./path/to/model/dir
+   # PowerShell: .\scripts\install_model.ps1 -SourceDir .\path\to\model\dir
+   ```
+
+   Sources: [GitHub Releases v0.1.0](https://github.com/nizba06/agentguard/releases/tag/v0.1.0), local training, or Kaggle (`.\scripts\download_kaggle_model.ps1`).
 
 2. **Confirm health**:
 
@@ -177,9 +194,17 @@ Results: `benchmarks/results/report.md`
 | P95 inspection latency | ~805 ms (CPU ONNX) |
 | ML model loaded | Yes |
 
-CPU latency exceeds the 15 ms design target; use GPU ONNX providers or async inspection for high-frequency pipelines.
+See [latency modes](#latency-and-deployment-modes) for production trade-offs.
 
-Reproduce with the HF corpus or local `benchmarks/dataset/*.jsonl` after `.\scripts\install_model.ps1`.
+Reproduce with the HF corpus or local `benchmarks/dataset/*.jsonl` after `python scripts/download_release_model.py`.
+
+### vs Microsoft Agent Governance Toolkit
+
+Feature matrix and shared-dataset methodology: [docs/MICROSOFT_TOOLKIT_COMPARISON.md](docs/MICROSOFT_TOOLKIT_COMPARISON.md).
+
+```powershell
+py -3.12 scripts\run_toolkit_comparison.py
+```
 
 ## Training (Kaggle GPU)
 
@@ -193,14 +218,23 @@ See [training/kaggle_notebook.ipynb](training/kaggle_notebook.ipynb).
 
 ## Documentation
 
+- [Read the Docs (Sphinx API)](https://inter-agent-guard.readthedocs.io/)
+- [Technical blog](docs/BLOG_POST.md)
+- [Microsoft toolkit comparison](docs/MICROSOFT_TOOLKIT_COMPARISON.md)
+- [Latency / deployment modes](docs/source/latency.md)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [REQUIREMENTS.md](docs/REQUIREMENTS.md)
 - [DESIGN.md](docs/DESIGN.md)
-- [Technical blog](docs/BLOG_POST.md)
-- [Blog draft (archive)](docs/BLOG_POST_DRAFT.md)
 - [Release notes](docs/RELEASE_NOTES_v0.1.0.md)
 - [Launch checklist](scripts/LAUNCH_CHECKLIST.md)
 - [Hugging Face dataset card](docs/HUGGINGFACE_DATASET_CARD.md)
+
+Build docs locally:
+
+```bash
+poetry install --with docs
+sphinx-build -b html docs/source docs/_build/html
+```
 
 ## License
 

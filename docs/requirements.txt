@@ -1,0 +1,4 @@
+# Sphinx / Read the Docs requirements (also: poetry install --with docs)
+sphinx>=7.2
+sphinx-rtd-theme>=2.0
+myst-parser>=3.0
