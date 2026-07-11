@@ -88,7 +88,7 @@ secured = guard.wrap(my_langgraph_graph)
 ## Call to action
 
 - GitHub: https://github.com/nizba06/agentguard
-- Hugging Face dataset: _run scripts/publish_huggingface.ps1_
+- Hugging Face dataset: https://huggingface.co/datasets/Nizba/agentguard-benchmark-v1
 - Contributions welcome: adapters, rules, evasion reports
 
 ## References

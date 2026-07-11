@@ -85,7 +85,7 @@ Review `benchmarks/results/report.md`.
 ```powershell
 # Requires: pip install huggingface_hub, HF token
 $env:HF_TOKEN = "hf_..."
-# Optional: $env:HF_DATASET_REPO = "your-org/agentguard-benchmark-v1"
+# Optional: $env:HF_DATASET_REPO = "Nizba/agentguard-benchmark-v1"
 .\scripts\publish_huggingface.ps1
 ```
 

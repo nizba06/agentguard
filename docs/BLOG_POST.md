@@ -29,13 +29,13 @@ py -3.12 examples/vulnerable_pipeline/pipeline.py   # ATTACK SUCCEEDED
 py -3.12 examples/secured_pipeline/pipeline.py      # ATTACK BLOCKED
 ```
 
-## Benchmark results (2026-06-30)
+## Benchmark results (Anthropic v1.0 corpus)
 
 | Metric | Value |
 |--------|-------|
-| Overall detection rate | 97.1% |
-| False positive rate | 0.0% |
-| P95 inspection latency | ~1060 ms (CPU ONNX) |
+| Overall detection rate | 40.2% |
+| False positive rate | 42.2% |
+| P95 inspection latency | ~805 ms (CPU ONNX) |
 | Adversarial examples | 1,200 |
 | Benign examples | 5,000 |
 
@@ -44,13 +44,15 @@ py -3.12 examples/secured_pipeline/pipeline.py      # ATTACK BLOCKED
 | Attack class | Detection rate |
 |--------------|----------------|
 | CAPABILITY_ESCALATION | 100% |
-| GOAL_HIJACK | 100% |
 | IMPERSONATION | 100% |
-| INDIRECT_INJECTION | 95% |
-| MCP_POISONING | 93% |
-| PROPAGATION | 94.5% |
+| GOAL_HIJACK | 17% |
+| INDIRECT_INJECTION | 11% |
+| MCP_POISONING | 9.5% |
+| PROPAGATION | 4% |
 
 CPU latency exceeds the 15 ms design target; use GPU ONNX providers or async inspection for high-frequency traffic.
+
+On this novel Anthropic corpus, manifest/capability and trust layers catch escalation and impersonation; ML and consistency layers drive most false positives on benign orchestration traffic — see `benchmarks/results/report.md`.
 
 ## Getting started
 
@@ -74,13 +76,13 @@ secured = guard.wrap(my_langgraph_graph)
 
 ## Dataset
 
-Novel 6,200-example corpus (Anthropic Batch) is published on Hugging Face for evaluation reproducibility. The library never calls Anthropic at runtime.
+Novel 6,200-example corpus (Anthropic Batch) is published on [Hugging Face](https://huggingface.co/datasets/Nizba/agentguard-benchmark-v1) for evaluation reproducibility. The library never calls Anthropic at runtime.
 
 ## Call to action
 
 - PyPI: https://pypi.org/project/inter-agent-guard/
 - GitHub: https://github.com/nizba06/agentguard
-- Dataset: https://huggingface.co/datasets/nizba06/agentguard-benchmark-v1.0
+- Dataset: https://huggingface.co/datasets/Nizba/agentguard-benchmark-v1
 - Contributions welcome: adapters, rules, evasion reports
 
 ## References

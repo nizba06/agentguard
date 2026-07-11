@@ -10,7 +10,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-Set-Location (Split-Path $PSScriptRoot -Parent)
+$Root = Split-Path $PSScriptRoot -Parent
+Set-Location $Root
+$env:PYTHONPATH = $Root
 
 $adv = "benchmarks/dataset/adversarial.jsonl"
 $ben = "benchmarks/dataset/benign.jsonl"

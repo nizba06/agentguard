@@ -19,7 +19,8 @@ size_categories:
 6,200 novel inter-agent messages for evaluating injection detection in multi-agent AI pipelines.
 
 **Library:** [`inter-agent-guard`](https://pypi.org/project/inter-agent-guard/) on PyPI (import as `agentguard`).  
-**Code:** https://github.com/nizba06/agentguard
+**Code:** https://github.com/nizba06/agentguard  
+**Hub:** https://huggingface.co/datasets/Nizba/agentguard-benchmark-v1
 
 ## Files
 
@@ -81,9 +82,9 @@ A zero-cost public-source builder also exists in the AgentGuard repo (`benchmark
 
 | Metric | Value |
 |--------|-------|
-| Overall detection rate | 97.1% |
-| False positive rate | 0.0% |
-| P95 inspection latency | ~1060 ms |
+| Overall detection rate | 40.2% |
+| False positive rate | 42.2% |
+| P95 inspection latency | ~805 ms |
 
 See `benchmarks/results/report.md` in the GitHub repository.
 
@@ -92,7 +93,7 @@ See `benchmarks/results/report.md` in the GitHub repository.
 ```python
 from datasets import load_dataset
 
-ds = load_dataset("nizba06/agentguard-benchmark-v1.0")
+ds = load_dataset("Nizba/agentguard-benchmark-v1")
 ```
 
 Or download the JSONL files and run:

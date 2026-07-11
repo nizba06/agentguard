@@ -85,7 +85,7 @@ Without the ONNX model, rule filtering and trust attestation still run; ML scori
    poetry run python examples/secured_pipeline/pipeline.py
    ```
 
-Anthropic Batch dataset generation (v1.0 novel corpus) is deferred — see [scripts/LAUNCH_CHECKLIST.md](scripts/LAUNCH_CHECKLIST.md).
+Novel v1.0 corpus is on [Hugging Face](https://huggingface.co/datasets/Nizba/agentguard-benchmark-v1). To regenerate locally, see [docs/ANTHROPIC_DATASET_RUNBOOK.md](docs/ANTHROPIC_DATASET_RUNBOOK.md).
 
 ### CLI
 
@@ -150,7 +150,9 @@ poetry run python examples/autogen_example.py
 
 AgentGuard ships with a 6,200-example inter-agent benchmark (1,200 adversarial + 5,000 benign).
 
-### Build dataset (zero cost)
+**Published on Hugging Face:** [Nizba/agentguard-benchmark-v1](https://huggingface.co/datasets/Nizba/agentguard-benchmark-v1) (Anthropic Batch, `anthropic_batch_v1`).
+
+### Build dataset locally (zero cost, optional)
 
 ```powershell
 .\scripts\run_public_dataset_build.ps1
@@ -166,20 +168,18 @@ Sources: InjecAgent (GitHub) + inter-agent framing templates + pipeline-style be
 
 Results: `benchmarks/results/report.md`
 
-### Latest results (2026-06-30 full run)
+### Latest results (Anthropic v1.0 corpus)
 
 | Metric | Value |
 |--------|-------|
-| Overall detection rate | 97.1% |
-| False positive rate | 0.0% |
-| P95 inspection latency | ~1060 ms (CPU ONNX) |
+| Overall detection rate | 40.2% |
+| False positive rate | 42.2% |
+| P95 inspection latency | ~805 ms (CPU ONNX) |
 | ML model loaded | Yes |
 
 CPU latency exceeds the 15 ms design target; use GPU ONNX providers or async inspection for high-frequency pipelines.
 
-### v1.0 launch
-
-Novel dataset via Anthropic Batch API — see [scripts/LAUNCH_CHECKLIST.md](scripts/LAUNCH_CHECKLIST.md).
+Reproduce with the HF corpus or local `benchmarks/dataset/*.jsonl` after `.\scripts\install_model.ps1`.
 
 ## Training (Kaggle GPU)
 

@@ -27,3 +27,12 @@ kaggle-status-pull/
 kaggle-dataset-dl/
 kaggle-verify/
 agentguard/models/risk_scorer.onnx
+# Secrets and local credentials — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.json
+.pypirc

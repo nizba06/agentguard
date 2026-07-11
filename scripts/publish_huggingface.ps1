@@ -4,7 +4,7 @@
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
-$RepoId = if ($env:HF_DATASET_REPO) { $env:HF_DATASET_REPO } else { "nizba06/agentguard-benchmark-v1.0" }
+$RepoId = if ($env:HF_DATASET_REPO) { $env:HF_DATASET_REPO } else { "Nizba/agentguard-benchmark-v1" }
 
 $Adv = "benchmarks/dataset/adversarial.jsonl"
 $Ben = "benchmarks/dataset/benign.jsonl"

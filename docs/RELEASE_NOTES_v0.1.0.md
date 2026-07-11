@@ -52,22 +52,32 @@ From a source checkout:
 # or: .\scripts\install_model.ps1 -SourceDir ...
 ```
 
-## Benchmark results (2026-06-30)
+## Benchmark dataset (Hugging Face)
+
+Novel 6,200-example inter-agent corpus (Anthropic Batch, `anthropic_batch_v1`):
+
+**https://huggingface.co/datasets/Nizba/agentguard-benchmark-v1**
+
+- 1,200 adversarial (6 attack classes) + 5,000 benign messages
+- Batch id: `msgbatch_01Mqsiry38ceBD8MLcxzL2pK`
+
+## Benchmark results (Anthropic v1.0 corpus)
 
 | Metric | Value |
 |--------|-------|
-| Overall detection rate | 97.1% |
-| False positive rate | 0.0% |
-| P95 inspection latency | ~1060 ms (CPU ONNX) |
+| Overall detection rate | 40.2% |
+| False positive rate | 42.2% |
+| P95 inspection latency | ~805 ms (CPU ONNX) |
 
 Full report: `benchmarks/results/report.md`.
 
 ## Known limitations
 
-- CPU P95 latency ~1s (design target was 15 ms); use GPU ONNX providers or async inspection for high-frequency traffic
+- CPU P95 latency ~800 ms (design target was 15 ms); use GPU ONNX providers or async inspection for high-frequency traffic
+- On the novel Anthropic benchmark corpus, overall detection is ~40% with ~42% false positives — capability/trust layers catch manifest-style attacks; ML/consistency tuning is ongoing
 - Trust keys are ephemeral and in-process only (no HSM/KMS persistence in v0.1.0)
 - ONNX model shipped as a release artifact, not in the wheel
-- Benchmark corpus for reported metrics is evaluated offline; Anthropic novel dataset distribution is via Hugging Face (see launch checklist)
+- Benchmark corpus for reported metrics is evaluated offline; novel Anthropic dataset: [Nizba/agentguard-benchmark-v1](https://huggingface.co/datasets/Nizba/agentguard-benchmark-v1)
 
 ## Verify
 

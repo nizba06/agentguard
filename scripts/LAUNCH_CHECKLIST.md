@@ -12,14 +12,14 @@ Track everything required to ship **v0.1.0** and **v1.0** follow-ons.
 | PyPI publish | **Done** | `pip install inter-agent-guard` (import `agentguard`) |
 | Code commit/push | **Done** | `origin/master` |
 | Anthropic novel dataset (local) | **Done** | `benchmarks/dataset/*.jsonl` |
-| Hugging Face dataset upload | **In progress** | `scripts/publish_huggingface.ps1` → `nizba06/agentguard-benchmark-v1.0` |
+| Hugging Face dataset upload | **Done** | https://huggingface.co/datasets/Nizba/agentguard-benchmark-v1 |
 | Blog post | **Done** | `docs/BLOG_POST.md` |
 | agentguard-demo on GitHub | **In progress** | PyPI dependency + public repo |
-| P95 latency vs 15 ms | Documented | ~1060 ms CPU — known limitation |
+| P95 latency vs 15 ms | Documented | ~805 ms CPU — known limitation |
 | Sphinx API docs | Not started | v1.0 P1 |
 | Microsoft toolkit comparison | Not started | REQUIREMENTS §12.3 |
 
-**Bottom line:** Library v0.1.0 is published (PyPI + GitHub release + ONNX). Remaining: HF dataset publish and demo repo public release.
+**Bottom line:** Library v0.1.0 is published (PyPI + GitHub release + ONNX). Anthropic benchmark corpus is on Hugging Face. Remaining: demo repo public release, Sphinx docs.
 
 ---
 
@@ -34,7 +34,7 @@ Track everything required to ship **v0.1.0** and **v1.0** follow-ons.
 | PyPI `inter-agent-guard` 0.1.0 | **Done** | |
 | GitHub release + ONNX | **Done** | `inter-agent-guard v0.1.0` |
 | Blog | **Done** | `docs/BLOG_POST.md` |
-| Hugging Face dataset | Pending upload | Card ready |
+| Hugging Face dataset | **Done** | [Nizba/agentguard-benchmark-v1](https://huggingface.co/datasets/Nizba/agentguard-benchmark-v1) |
 | Demo repo | Pending first push | Uses PyPI package |
 
 ---
