@@ -12,14 +12,15 @@ AgentGuard intercepts every message between agents and enforces three runtime co
 
 ```bash
 # Python 3.11 or 3.12
-pip install -e ".[all,otel]"
-# or: poetry install --extras all --extras otel
+pip install "agentguard[all,otel]"
+# from a clone: pip install -e ".[all,otel]"
 
 agentguard status
 agentguard check-manifest manifests/comms_agent.yaml
 agentguard inspect -m "Summarise public pricing data from filings."
-pytest
 ```
+
+Download `risk_scorer.onnx` + `model.sha256` from the [GitHub Releases](https://github.com/nizba06/agentguard/releases) page, install into `agentguard/models/`, then set `require_ml_model=True` for production enforce-mode.
 
 ```python
 from agentguard import AgentGuard, CapabilityManifest

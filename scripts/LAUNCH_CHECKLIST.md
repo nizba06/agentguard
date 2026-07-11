@@ -40,9 +40,9 @@ Track everything required to ship **v0.1.0** (library + public-source benchmark)
 | Docker image | **Done** | `Dockerfile` |
 | LICENSE + CONTRIBUTING | **Done** | Apache-2.0 |
 | Public-source benchmark | **Done** | 97.1% detection, 0% FPR |
-| ONNX model in tree | **Missing** | Gitignored; install separately |
-| PyPI publish | **Not done** | `scripts/publish_pypi.ps1` |
-| GitHub v0.1.0 / v1.0 release | **Not done** | |
+| ONNX model in tree | **Local only** | Gitignored; ship via GitHub Releases |
+| PyPI publish | **Pending token** | `scripts/publish_pypi.ps1` + `PYPI_TOKEN` |
+| GitHub v0.1.0 release | **Pending `gh auth login`** | `scripts/create_github_release.ps1` |
 | Anthropic novel dataset | **Deferred v1.0** | Not used at runtime |
 | Hugging Face dataset | **Not done** | |
 | Technical blog | **Draft only** | Metrics need refresh |
