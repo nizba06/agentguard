@@ -35,4 +35,6 @@ All notable changes to this project are documented in this file.
 - ONNX model must be downloaded separately (Kaggle training output or local train/export); not bundled in the PyPI wheel
 - Novel Anthropic Batch benchmark corpus deferred to v1.0 launch
 - Trust keys are ephemeral in-process only (no HSM/KMS persistence yet)
-- Not yet published to PyPI / GitHub Releases (see `scripts/LAUNCH_CHECKLIST.md`)
+- PyPI distribution name is `inter-agent-guard` (bare `agentguard` blocked by existing `agent-guard`); import remains `agentguard`
+- Published to PyPI as `inter-agent-guard` 0.1.0
+- ONNX model and GitHub Releases / Hugging Face dataset — see `scripts/LAUNCH_CHECKLIST.md`

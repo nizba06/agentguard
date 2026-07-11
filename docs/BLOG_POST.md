@@ -1,0 +1,90 @@
+# AgentGuard: An Open-Source Firewall for Multi-Agent AI Systems
+
+Multi-agent systems trust messages between specialists — orchestrator, researcher, writer — without verifying content. One poisoned hop can hijack the entire pipeline. AgentGuard is a pip-installable Python middleware that inspects every inter-agent message at runtime.
+
+**Install:** `pip install inter-agent-guard` (import as `agentguard`)  
+**Repo:** https://github.com/nizba06/agentguard
+
+## Problem
+
+- Indirect injection in tool output and inter-agent messages
+- Propagation across agent hops (LangGraph, CrewAI, AutoGen)
+- Capability escalation and MCP tool-return poisoning
+- Few public benchmarks aimed at *inter-agent* injection specifically
+
+## Solution
+
+Three runtime layers:
+
+1. **Message Inspector** — Aho-Corasick rules + DeBERTa ONNX scorer + consistency check
+2. **Trust Verifier** — Ephemeral Ed25519 per-agent signing (PyNaCl)
+3. **Capability Enforcer** — YAML manifests (tools, endpoints, data sources, tokens, delegation) with monotonic attenuation
+
+Plus **MCP output inspection** for tool-return poisoning.
+
+## Demo
+
+```bash
+py -3.12 examples/vulnerable_pipeline/pipeline.py   # ATTACK SUCCEEDED
+py -3.12 examples/secured_pipeline/pipeline.py      # ATTACK BLOCKED
+```
+
+## Benchmark results (2026-06-30)
+
+| Metric | Value |
+|--------|-------|
+| Overall detection rate | 97.1% |
+| False positive rate | 0.0% |
+| P95 inspection latency | ~1060 ms (CPU ONNX) |
+| Adversarial examples | 1,200 |
+| Benign examples | 5,000 |
+
+### Detection by attack class
+
+| Attack class | Detection rate |
+|--------------|----------------|
+| CAPABILITY_ESCALATION | 100% |
+| GOAL_HIJACK | 100% |
+| IMPERSONATION | 100% |
+| INDIRECT_INJECTION | 95% |
+| MCP_POISONING | 93% |
+| PROPAGATION | 94.5% |
+
+CPU latency exceeds the 15 ms design target; use GPU ONNX providers or async inspection for high-frequency traffic.
+
+## Getting started
+
+```bash
+py -3.12 -m pip install "inter-agent-guard[all,otel]"
+# Download risk_scorer.onnx from GitHub Releases into agentguard/models/
+py -3.12 -m agentguard status
+```
+
+```python
+from agentguard import AgentGuard, CapabilityManifest
+
+guard = AgentGuard(
+    risk_threshold=0.75,
+    task_objective="Analyse Q3 competitor pricing",
+    require_ml_model=True,
+)
+guard.register_agent("researcher", CapabilityManifest.from_yaml("manifests/researcher.yaml"))
+secured = guard.wrap(my_langgraph_graph)
+```
+
+## Dataset
+
+Novel 6,200-example corpus (Anthropic Batch) is published on Hugging Face for evaluation reproducibility. The library never calls Anthropic at runtime.
+
+## Call to action
+
+- PyPI: https://pypi.org/project/inter-agent-guard/
+- GitHub: https://github.com/nizba06/agentguard
+- Dataset: https://huggingface.co/datasets/nizba06/agentguard-benchmark-v1.0
+- Contributions welcome: adapters, rules, evasion reports
+
+## References
+
+- InjecAgent (Zhan et al., 2024)
+- AgentDojo / Task Shield consistency checking
+- Multi-agent injection literature (MASpi / ACIArena)

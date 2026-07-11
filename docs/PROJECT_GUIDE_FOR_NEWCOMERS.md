@@ -431,7 +431,7 @@ Use this during rollout to tune thresholds before enforcing.
 
 ### Optional OpenTelemetry export
 
-Requires `pip install agentguard[otel]` (or the otel extra via Poetry):
+Requires `pip install "inter-agent-guard[otel]"` (or the otel extra via Poetry):
 
 ```python
 guard = AgentGuard(enable_otel_export=True, audit_log_path="./audit.jsonl")

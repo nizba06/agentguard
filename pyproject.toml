@@ -1,10 +1,15 @@
 [tool.poetry]
-name = "agentguard"
+name = "inter-agent-guard"
 version = "0.1.0"
 description = "Inter-agent security firewall for multi-agent AI systems"
 authors = ["AgentGuard Contributors"]
 license = "Apache-2.0"
 readme = "README.md"
+homepage = "https://github.com/nizba06/agentguard"
+repository = "https://github.com/nizba06/agentguard"
+documentation = "https://github.com/nizba06/agentguard#readme"
+keywords = ["agents", "security", "firewall", "langgraph", "prompt-injection", "multi-agent"]
+# Distribution name is inter-agent-guard (PyPI); import remains agentguard.
 packages = [
     { include = "agentguard" },
 ]

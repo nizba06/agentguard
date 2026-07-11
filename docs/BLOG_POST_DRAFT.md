@@ -70,7 +70,7 @@ _Optional: LangGraph 3-agent pipeline with AgentGuard wrap point_
 ## Getting started
 
 ```bash
-pip install agentguard  # v1.0
+pip install inter-agent-guard  # import remains agentguard
 py -3.12 scripts/verify_model.py
 ```
 

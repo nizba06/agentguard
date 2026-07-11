@@ -4,7 +4,7 @@
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
-$RepoId = if ($env:HF_DATASET_REPO) { $env:HF_DATASET_REPO } else { "nizba06/agentguard-benchmark-v0.1" }
+$RepoId = if ($env:HF_DATASET_REPO) { $env:HF_DATASET_REPO } else { "nizba06/agentguard-benchmark-v1.0" }
 
 $Adv = "benchmarks/dataset/adversarial.jsonl"
 $Ben = "benchmarks/dataset/benign.jsonl"
@@ -12,7 +12,7 @@ $Card = "docs/HUGGINGFACE_DATASET_CARD.md"
 
 foreach ($f in @($Adv, $Ben, $Card)) {
     if (-not (Test-Path $f)) {
-        Write-Error "Missing file: $f (run .\scripts\run_public_dataset_build.ps1 first)"
+        Write-Error "Missing file: $f (Anthropic corpus or public builder required)"
     }
 }
 
@@ -32,21 +32,21 @@ api.upload_file(
     path_in_repo='adversarial.jsonl',
     repo_id=repo,
     repo_type='dataset',
-    commit_message='AgentGuard v0.1 adversarial benchmark',
+    commit_message='AgentGuard v1.0 adversarial benchmark (Anthropic Batch)',
 )
 api.upload_file(
     path_or_fileobj=r'$Ben',
     path_in_repo='benign.jsonl',
     repo_id=repo,
     repo_type='dataset',
-    commit_message='AgentGuard v0.1 benign benchmark',
+    commit_message='AgentGuard v1.0 benign benchmark (Anthropic Batch)',
 )
 api.upload_file(
     path_or_fileobj=r'$Card',
     path_in_repo='README.md',
     repo_id=repo,
     repo_type='dataset',
-    commit_message='Dataset card',
+    commit_message='Dataset card v1.0',
 )
 print(f'Uploaded to https://huggingface.co/datasets/{repo}')
 "@

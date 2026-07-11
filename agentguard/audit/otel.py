@@ -23,7 +23,7 @@ class AuditOtelExporter:
             from opentelemetry.sdk.trace import TracerProvider  # noqa: PLC0415
             from opentelemetry.sdk.trace.export import BatchSpanProcessor  # noqa: PLC0415
         except ImportError as exc:
-            msg = "OpenTelemetry export requires: pip install agentguard[otel]"
+            msg = 'OpenTelemetry export requires: pip install "inter-agent-guard[otel]"'
             raise RuntimeError(msg) from exc
 
         endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")

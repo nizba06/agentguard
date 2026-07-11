@@ -12,7 +12,8 @@ AgentGuard intercepts every message between agents and enforces three runtime co
 
 ```bash
 # Python 3.11 or 3.12
-pip install "agentguard[all,otel]"
+# PyPI distribution name (import package is still agentguard)
+pip install "inter-agent-guard[all,otel]"
 # from a clone: pip install -e ".[all,otel]"
 
 agentguard status
@@ -20,7 +21,13 @@ agentguard check-manifest manifests/comms_agent.yaml
 agentguard inspect -m "Summarise public pricing data from filings."
 ```
 
-Download `risk_scorer.onnx` + `model.sha256` from the [GitHub Releases](https://github.com/nizba06/agentguard/releases) page, install into `agentguard/models/`, then set `require_ml_model=True` for production enforce-mode.
+```python
+from agentguard import AgentGuard, CapabilityManifest
+```
+
+Download `risk_scorer.onnx` + `model.sha256` from the [GitHub Releases](https://github.com/nizba06/agentguard/releases) page, install into the package `models/` directory (or pass `model_path=`), then set `require_ml_model=True` for production enforce-mode.
+
+> **Note:** The PyPI project is `inter-agent-guard` because bare `agentguard` collides with existing `agent-guard` under PyPI’s name rules. The Python import and CLI remain `agentguard`.
 
 ```python
 from agentguard import AgentGuard, CapabilityManifest
@@ -100,9 +107,9 @@ docker run --rm agentguard
 docker run --rm -v "%CD%\audit.jsonl:/data/audit.jsonl" agentguard verify /data/audit.jsonl
 ```
 
-For framework adapters in your own Dockerfile: `pip install "agentguard[all,otel]"`.
+For framework adapters in your own Dockerfile: `pip install "inter-agent-guard[all,otel]"`.
 
-Optional OpenTelemetry export (requires `pip install agentguard[otel]`):
+Optional OpenTelemetry export (requires `pip install "inter-agent-guard[otel]"`):
 
 ```python
 guard = AgentGuard(enable_otel_export=True, audit_log_path="./audit.jsonl")
@@ -189,9 +196,11 @@ See [training/kaggle_notebook.ipynb](training/kaggle_notebook.ipynb).
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [REQUIREMENTS.md](docs/REQUIREMENTS.md)
 - [DESIGN.md](docs/DESIGN.md)
-- [Blog draft](docs/BLOG_POST_DRAFT.md)
-- [Release notes draft](docs/RELEASE_NOTES_v0.1.0-draft.md)
+- [Technical blog](docs/BLOG_POST.md)
+- [Blog draft (archive)](docs/BLOG_POST_DRAFT.md)
+- [Release notes](docs/RELEASE_NOTES_v0.1.0.md)
 - [Launch checklist](scripts/LAUNCH_CHECKLIST.md)
+- [Hugging Face dataset card](docs/HUGGINGFACE_DATASET_CARD.md)
 
 ## License
 

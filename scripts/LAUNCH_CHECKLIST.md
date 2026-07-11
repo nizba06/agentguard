@@ -41,7 +41,7 @@ Track everything required to ship **v0.1.0** (library + public-source benchmark)
 | LICENSE + CONTRIBUTING | **Done** | Apache-2.0 |
 | Public-source benchmark | **Done** | 97.1% detection, 0% FPR |
 | ONNX model in tree | **Local only** | Gitignored; ship via GitHub Releases |
-| PyPI publish | **Pending token** | `scripts/publish_pypi.ps1` + `PYPI_TOKEN` |
+| PyPI publish | **Done** | Dist name `inter-agent-guard` 0.1.0 |
 | GitHub v0.1.0 release | **Pending `gh auth login`** | `scripts/create_github_release.ps1` |
 | Anthropic novel dataset | **Deferred v1.0** | Not used at runtime |
 | Hugging Face dataset | **Not done** | |
@@ -95,7 +95,8 @@ Confirm GitHub Actions green on Python 3.11 and 3.12.
 ```powershell
 $env:PYPI_TOKEN = "pypi-..."
 .\scripts\publish_pypi.ps1
-pip install agentguard   # smoke test in clean venv
+pip install inter-agent-guard   # smoke test in clean venv
+python -c "from agentguard import AgentGuard; print('ok')"
 ```
 
 ### Step 5 — GitHub release

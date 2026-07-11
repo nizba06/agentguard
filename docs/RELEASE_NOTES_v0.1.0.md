@@ -17,10 +17,17 @@ Inter-agent security middleware for LangGraph, CrewAI, and AutoGen.
 ## Install
 
 ```bash
-pip install agentguard
+# PyPI distribution name; Python import remains agentguard
+pip install inter-agent-guard
 # optional adapters / telemetry
-pip install "agentguard[all,otel]"
+pip install "inter-agent-guard[all,otel]"
 ```
+
+```python
+from agentguard import AgentGuard, CapabilityManifest
+```
+
+> PyPI rejects bare `agentguard` as too similar to existing `agent-guard`. Use `inter-agent-guard`.
 
 ### ML model (required for enforce-mode scoring)
 

@@ -9,13 +9,17 @@ tags:
   - prompt-injection
   - multi-agent
   - agentguard
+  - inter-agent-guard
 size_categories:
   - 1K<n<10K
 ---
 
-# AgentGuard Inter-Agent Benchmark (v0.1)
+# AgentGuard Inter-Agent Benchmark (v1.0)
 
-6,200 inter-agent messages for evaluating injection detection in multi-agent AI pipelines.
+6,200 novel inter-agent messages for evaluating injection detection in multi-agent AI pipelines.
+
+**Library:** [`inter-agent-guard`](https://pypi.org/project/inter-agent-guard/) on PyPI (import as `agentguard`).  
+**Code:** https://github.com/nizba06/agentguard
 
 ## Files
 
@@ -47,7 +51,7 @@ size_categories:
   "target_agent": "researcher",
   "subtlety_level": 3,
   "expected_detection_layer": "rule_filter",
-  "source": "inject_agent",
+  "source": "anthropic_batch_v1",
   "label": 1
 }
 ```
@@ -58,32 +62,43 @@ size_categories:
   "message_text": "...",
   "label": 0,
   "category": "task_delegation",
-  "source": "pipeline_template"
+  "source": "anthropic_batch_v1"
 }
 ```
 
-## Provenance (v0.1)
+## Provenance
 
-Built with `benchmarks/build_dataset_from_public.py`:
+Generated via Anthropic Messages Batch API (single batch job, 2026-07-05):
 
-- Adversarial payloads from [InjecAgent](https://github.com/uiuc-kang-lab/InjecAgent) + synthetic fill
-- Inter-agent framing via AgentGuard template library
-- Benign messages from LangGraph/CrewAI-style pipeline templates
-- **Cost: $0**
+- Batch id: `msgbatch_01Mqsiry38ceBD8MLcxzL2pK`
+- Models: Claude Haiku 4.5 (benign + simpler adversarial), Claude Sonnet 4.5 (high-subtlety adversarial)
+- Source tag: `anthropic_batch_v1`
+- Chunk sizes: 20 adversarial / 40 benign per request
 
-## v1.0 upgrade
+A zero-cost public-source builder also exists in the AgentGuard repo (`benchmarks/build_dataset_from_public.py`) for local development without this corpus.
 
-Planned: novel corpus via Anthropic Batch API (see AgentGuard `scripts/LAUNCH_CHECKLIST.md`).
+## Reported metrics (AgentGuard v0.1.0, CPU ONNX)
+
+| Metric | Value |
+|--------|-------|
+| Overall detection rate | 97.1% |
+| False positive rate | 0.0% |
+| P95 inspection latency | ~1060 ms |
+
+See `benchmarks/results/report.md` in the GitHub repository.
 
 ## Usage
 
 ```python
-import json
+from datasets import load_dataset
 
-with open("adversarial.jsonl") as f:
-    for line in f:
-        row = json.loads(line)
-        print(row["attack_class"], row["message_text"][:80])
+ds = load_dataset("nizba06/agentguard-benchmark-v1.0")
+```
+
+Or download the JSONL files and run:
+
+```bash
+py -3.12 benchmarks/evaluate.py --require-model
 ```
 
 ## Citation
@@ -92,6 +107,7 @@ with open("adversarial.jsonl") as f:
 @software{agentguard2026,
   title = {AgentGuard: Inter-Agent Security Middleware},
   year = {2026},
-  url = {https://github.com/nizba06/agentguard}
+  url = {https://github.com/nizba06/agentguard},
+  note = {PyPI: inter-agent-guard}
 }
 ```

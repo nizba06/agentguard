@@ -74,5 +74,5 @@ def test_export_entry_sets_span_attributes() -> None:
 
 def test_audit_otel_exporter_missing_dependency() -> None:
     with patch.dict("sys.modules", {"opentelemetry": None}):
-        with pytest.raises(RuntimeError, match="agentguard\\[otel\\]"):
+        with pytest.raises(RuntimeError, match="inter-agent-guard\\[otel\\]"):
             AuditOtelExporter()
