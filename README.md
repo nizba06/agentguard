@@ -3,7 +3,7 @@
 Inter-agent security firewall for multi-agent AI systems (LangGraph, CrewAI, AutoGen).
 
 **PyPI:** `pip install inter-agent-guard` · **Import / CLI:** `agentguard`  
-**Docs:** [Read the Docs](https://inter-agent-guard.readthedocs.io/) · [Blog post](docs/BLOG_POST.md) · [Demo](https://github.com/nizba06/inter-agent-guard-demo)
+**Docs:** [docs/](docs/) · [Blog post](docs/BLOG_POST.md) · [Demo](https://github.com/nizba06/inter-agent-guard-demo)
 
 AgentGuard intercepts every message between agents and enforces three runtime controls:
 
@@ -218,7 +218,7 @@ See [training/kaggle_notebook.ipynb](training/kaggle_notebook.ipynb).
 
 ## Documentation
 
-- [Read the Docs (Sphinx API)](https://inter-agent-guard.readthedocs.io/)
+- [Sphinx API docs](docs/source/) — build with `poetry install --with docs && sphinx-build -b html docs/source docs/_build/html`
 - [Technical blog](docs/BLOG_POST.md)
 - [Microsoft toolkit comparison](docs/MICROSOFT_TOOLKIT_COMPARISON.md)
 - [Latency / deployment modes](docs/source/latency.md)

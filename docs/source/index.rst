@@ -12,6 +12,12 @@ Inter-agent security firewall for multi-agent AI systems
    python scripts/download_release_model.py
    agentguard status
 
+Project docs in the repository (not duplicated here):
+
+* Blog — ``docs/BLOG_POST.md``
+* Microsoft toolkit comparison — ``docs/MICROSOFT_TOOLKIT_COMPARISON.md``
+* Design / requirements — ``docs/DESIGN.md``, ``docs/REQUIREMENTS.md``
+
 Contents
 --------
 
@@ -21,21 +27,12 @@ Contents
 
    quickstart
    latency
-   comparison
 
 .. toctree::
    :maxdepth: 2
    :caption: API
 
    api
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Project docs
-
-   blog
-   design
-   requirements
 
 Indices
 -------

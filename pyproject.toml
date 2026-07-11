@@ -7,7 +7,7 @@ license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://github.com/nizba06/agentguard"
 repository = "https://github.com/nizba06/agentguard"
-documentation = "https://inter-agent-guard.readthedocs.io/"
+documentation = "https://github.com/nizba06/agentguard/tree/master/docs"
 keywords = ["agents", "security", "firewall", "langgraph", "prompt-injection", "multi-agent"]
 # Distribution name is inter-agent-guard (PyPI); import remains agentguard.
 packages = [

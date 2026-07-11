@@ -11,6 +11,7 @@ benchmarks/dataset/*.jsonl
 benchmarks/dataset_backup_*/
 benchmarks/results/*.jsonl
 benchmarks/results/evaluation_run.log
+benchmarks/results/toolkit_comparison_samples.json
 audit.jsonl
 .commit_msg_clean.txt
 training/data/
