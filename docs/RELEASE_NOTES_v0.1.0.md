@@ -1,8 +1,8 @@
-# AgentGuard v0.1.0 — Release Notes
+# inter-agent-guard v0.1.0 — Release Notes
 
-**Released:** 2026-07-11
-
-Inter-agent security middleware for LangGraph, CrewAI, and AutoGen.
+**Released:** 2026-07-11  
+**PyPI:** `inter-agent-guard` · **Import:** `agentguard`  
+**Repo:** AgentGuard (https://github.com/nizba06/agentguard)
 
 ## Highlights
 
