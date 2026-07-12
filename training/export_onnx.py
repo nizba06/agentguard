@@ -204,6 +204,8 @@ def export_to_onnx(
     p95 = latencies[94]
 
     print("\n=== Sample Scores ===")
+    inj_scores: list[float] = []
+    ben_scores: list[float] = []
     for label, samples in (("INJECTION", INJECTION_SAMPLES), ("BENIGN", BENIGN_SAMPLES)):
         print(f"\n{label}:")
         for text in samples:
@@ -218,6 +220,25 @@ def export_to_onnx(
             logits = session.run(None, inp)[0]
             prob = float(_softmax(logits)[0, 1])
             print(f"  [{prob:.3f}] {text[:70]}...")
+            if label == "INJECTION":
+                inj_scores.append(prob)
+            else:
+                ben_scores.append(prob)
+
+    mean_inj = sum(inj_scores) / len(inj_scores)
+    mean_ben = sum(ben_scores) / len(ben_scores)
+    if mean_inj < 0.05 and mean_ben < 0.05:
+        msg = (
+            f"Exported ONNX looks collapsed (mean inj={mean_inj:.3f}, ben={mean_ben:.3f}). "
+            "Refusing to treat this as a valid release artifact."
+        )
+        raise RuntimeError(msg)
+    if mean_inj <= mean_ben or (mean_inj - mean_ben) < 0.2:
+        msg = (
+            f"Exported ONNX failed probe (mean inj={mean_inj:.3f}, ben={mean_ben:.3f}). "
+            "Check label mapping / export path."
+        )
+        raise RuntimeError(msg)
 
     size_mb = dest_onnx.stat().st_size / (1024 * 1024)
     result = ExportResult(
