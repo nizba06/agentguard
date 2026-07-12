@@ -182,4 +182,17 @@ def train_model(
 
 
 if __name__ == "__main__":
-    train_model("training/data", "training/checkpoints")
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Fine-tune DeBERTa for AgentGuard")
+    parser.add_argument("--data-dir", default="training/data")
+    parser.add_argument("--output-dir", default="training/checkpoints")
+    parser.add_argument("--quick", action="store_true", help="1-epoch smoke train")
+    parser.add_argument("--max-train-samples", type=int, default=None)
+    cli = parser.parse_args()
+    train_model(
+        cli.data_dir,
+        cli.output_dir,
+        quick=cli.quick or None,
+        max_train_samples=cli.max_train_samples,
+    )

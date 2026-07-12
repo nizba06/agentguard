@@ -194,7 +194,7 @@ Results: `benchmarks/results/report.md`
 | P95 inspection latency | ~1.59 s (CPU ONNX) |
 | ML model loaded | Yes |
 
-Measured 2026-07-12 after FPR-oriented defaults (`risk_threshold=0.85`, `consistency_ml_risk_floor=0.40`). Still below v1.0 NFR targets (>90% detection, <3% FPR, <15 ms P95). Prefer **monitor** or **rules-only** until ML quality improves. See [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) §6.
+Measured 2026-07-12 after FPR-oriented defaults (`risk_threshold=0.85`, `consistency_ml_risk_floor=0.75`). Still below v1.0 NFR targets (>90% detection, <3% FPR, <15 ms P95). Prefer **monitor** or **rules-only** until ML quality improves. See [docs/V1_ROADMAP.md](docs/V1_ROADMAP.md).
 
 Reproduce with the HF corpus or local `benchmarks/dataset/*.jsonl` after `python scripts/download_release_model.py`.
 

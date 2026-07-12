@@ -39,7 +39,7 @@ class AgentGuard:
         task_objective: str | None = None,
         enable_consistency_check: bool = True,
         consistency_threshold: float = 0.10,
-        consistency_ml_risk_floor: float = 0.40,
+        consistency_ml_risk_floor: float = 0.75,
         model_path: str | None = None,
         require_ml_model: bool = False,
         enable_otel_export: bool = False,

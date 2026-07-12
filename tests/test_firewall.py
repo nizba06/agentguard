@@ -240,7 +240,7 @@ def test_pipeline_status_uses_raised_risk_floor(
         audit_log_path=str(tmp_path / "audit.jsonl"),
         task_objective="Analyse Q3 competitor pricing",
         consistency_threshold=0.10,
-        consistency_ml_risk_floor=0.40,
+        consistency_ml_risk_floor=0.75,
         risk_threshold=0.85,
     )
     guard.register_agent("researcher", researcher_manifest)

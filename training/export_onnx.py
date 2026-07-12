@@ -140,7 +140,12 @@ def _export_with_torch(checkpoint: Path, dest_onnx: Path) -> None:
     )
 
 
-def export_to_onnx(checkpoint_dir: str, output_path: str) -> ExportResult:
+def export_to_onnx(
+    checkpoint_dir: str,
+    output_path: str,
+    *,
+    quantize: bool = False,
+) -> ExportResult:
     """Export checkpoint to ONNX, copy to agentguard/models, benchmark latency."""
     from transformers import AutoTokenizer  # noqa: PLC0415
 
@@ -164,6 +169,9 @@ def export_to_onnx(checkpoint_dir: str, output_path: str) -> ExportResult:
         shutil.rmtree(staging_dir, ignore_errors=True)
     else:
         _export_with_torch(checkpoint, dest_onnx)
+
+    if quantize:
+        dest_onnx = _quantize_onnx_dynamic(dest_onnx)
 
     sha256 = _sha256_file(dest_onnx)
     (models_dir / "model.sha256").write_text(sha256 + "\n", encoding="utf-8")
@@ -223,9 +231,38 @@ def export_to_onnx(checkpoint_dir: str, output_path: str) -> ExportResult:
     print(f"Model size:     {result.model_size_mb} MB")
     print(f"SHA-256:        {result.sha256_hash[:16]}...")
     print(f"P95 latency:    {result.sample_latency_ms} ms (CPU)")
+    print(f"Quantized:      {quantize}")
     print("=======================\n")
     return result
 
 
+def _quantize_onnx_dynamic(model_path: Path) -> Path:
+    """Apply ONNX Runtime dynamic INT8 quantization; return path to quantized model."""
+    from onnxruntime.quantization import QuantType, quantize_dynamic  # noqa: PLC0415
+
+    quantized = model_path.with_name("risk_scorer.int8.onnx")
+    quantize_dynamic(
+        model_input=str(model_path),
+        model_output=str(quantized),
+        weight_type=QuantType.QUInt8,
+    )
+    # Promote quantized artifact to the default runtime path.
+    model_path.unlink(missing_ok=True)
+    quantized.replace(model_path)
+    print(f"Dynamic INT8 quantization written to {model_path}")
+    return model_path
+
+
 if __name__ == "__main__":
-    export_to_onnx("training/checkpoints/best", "agentguard/models")
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Export AgentGuard ONNX risk scorer")
+    parser.add_argument("--checkpoint", default="training/checkpoints/best")
+    parser.add_argument("--output-dir", default="agentguard/models")
+    parser.add_argument(
+        "--quantize",
+        action="store_true",
+        help="Apply ONNX Runtime dynamic INT8 quantization after export",
+    )
+    cli = parser.parse_args()
+    export_to_onnx(cli.checkpoint, cli.output_dir, quantize=cli.quantize)

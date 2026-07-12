@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Anthropic-primary training prep with 20% holdout (`training/prepare_dataset.py --source anthropic`)
+- `scripts/retrain_checklist.ps1` and `docs/V1_ROADMAP.md` for Phase 1–4 toward v1.0
+- Benchmark `--stage-timing-sample` and ONNX export `--quantize` (dynamic INT8)
+
+### Changed
+
+- Default `consistency_ml_risk_floor` raised 0.40 → 0.75 (Phase 2 FPR gray-band)
+
 ## [0.1.1] - 2026-07-12
 
 ### Changed

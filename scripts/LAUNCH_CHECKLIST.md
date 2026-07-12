@@ -21,7 +21,7 @@ Track everything required to ship **v0.1.0** and **v1.0** follow-ons.
 | Sphinx API docs | **Done** | `docs/source/` + `.readthedocs.yaml` |
 | Microsoft toolkit comparison | **Done** | [docs/MICROSOFT_TOOLKIT_COMPARISON.md](../docs/MICROSOFT_TOOLKIT_COMPARISON.md) |
 
-**Bottom line:** Library v0.1.0 is public (PyPI + GitHub + ONNX + HF + demo + Sphinx + comparison docs). Remaining for v1.0: dual-stack empirical ASR numbers vs AGT on the full corpus, GPU P95 measurements, community adoption.
+**Bottom line:** Library v0.1.1 is public. Path to v1.0 is ML retrain + FPR/latency gates — see [docs/V1_ROADMAP.md](../docs/V1_ROADMAP.md) and `.\scripts\retrain_checklist.ps1`.
 
 ---
 

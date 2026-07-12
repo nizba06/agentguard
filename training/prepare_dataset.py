@@ -1,7 +1,12 @@
-"""Download and merge training data for DeBERTa fine-tuning."""
+"""Download and merge training data for DeBERTa fine-tuning.
+
+Supports Anthropic-primary training with a held-out eval split so the
+official benchmark corpus is not fully leaked into the trainer.
+"""
 
 from __future__ import annotations
 
+import argparse
 import json
 import random
 from dataclasses import dataclass
@@ -28,6 +33,16 @@ BARE_BENIGN_IMPERATIVES: tuple[str, ...] = (
     "Share a brief status update on the web search progress.",
 )
 
+# Attack classes that are content-inspection problems (not trust/capability).
+_CONTENT_ATTACK_CLASSES = frozenset(
+    {
+        "INDIRECT_INJECTION",
+        "PROPAGATION",
+        "MCP_POISONING",
+        "GOAL_HIJACK",
+    }
+)
+
 
 @dataclass
 class DatasetStats:
@@ -38,6 +53,9 @@ class DatasetStats:
     negative_count: int
     train_count: int
     val_count: int
+    holdout_positive: int = 0
+    holdout_negative: int = 0
+    source: str = "mixed"
 
 
 class DatasetPreparer:
@@ -48,40 +66,158 @@ class DatasetPreparer:
         output_dir: Path | str = "training/data",
         benign_path: Path | str = "benchmarks/dataset/benign.jsonl",
         adversarial_path: Path | str = "benchmarks/dataset/adversarial.jsonl",
+        holdout_dir: Path | str = "benchmarks/dataset/holdout",
         seed: int = 42,
+        source: str = "anthropic",
+        holdout_fraction: float = 0.20,
+        content_attacks_only: bool = True,
     ) -> None:
+        if source not in ("anthropic", "mixed", "injectagent"):
+            msg = f"source must be anthropic|mixed|injectagent, got {source!r}"
+            raise ValueError(msg)
+        if not 0.0 <= holdout_fraction < 0.5:
+            msg = "holdout_fraction must be in [0.0, 0.5)"
+            raise ValueError(msg)
         self._output_dir = Path(output_dir)
         self._benign_path = Path(benign_path)
         self._adversarial_path = Path(adversarial_path)
+        self._holdout_dir = Path(holdout_dir)
         self._seed = seed
+        self._source = source
+        self._holdout_fraction = holdout_fraction
+        self._content_attacks_only = content_attacks_only
 
     def prepare(self) -> DatasetStats:
-        """Load, merge, split, and save train/val JSONL files."""
-        examples = self._load_inject_agent()
-        examples.extend(self._load_benign())
-        examples.extend(self._load_bare_benign())
-        examples.extend(self._load_adversarial())
-
+        """Load, hold out eval rows, split train/val, and save JSONL files."""
         rng = random.Random(self._seed)
-        rng.shuffle(examples)
+        positives = self._load_positives()
+        negatives = self._load_negatives()
+        rng.shuffle(positives)
+        rng.shuffle(negatives)
 
-        positive = [ex for ex in examples if ex["label"] == 1]
-        negative = [ex for ex in examples if ex["label"] == 0]
-        train, val = self._stratified_split(positive, negative, rng)
+        holdout_pos, train_pos = self._carve_holdout(positives, rng)
+        holdout_neg, train_neg = self._carve_holdout(negatives, rng)
+        self._write_holdout(holdout_pos, holdout_neg)
 
+        train, val = self._stratified_split(train_pos, train_neg, rng)
         self._output_dir.mkdir(parents=True, exist_ok=True)
         self._write_jsonl(self._output_dir / "train.jsonl", train)
         self._write_jsonl(self._output_dir / "val.jsonl", val)
-
-        stats = DatasetStats(
-            total_examples=len(examples),
-            positive_count=len(positive),
-            negative_count=len(negative),
+        self._write_manifest(
             train_count=len(train),
             val_count=len(val),
+            holdout_pos=len(holdout_pos),
+            holdout_neg=len(holdout_neg),
+        )
+
+        stats = DatasetStats(
+            total_examples=len(positives) + len(negatives),
+            positive_count=len(positives),
+            negative_count=len(negatives),
+            train_count=len(train),
+            val_count=len(val),
+            holdout_positive=len(holdout_pos),
+            holdout_negative=len(holdout_neg),
+            source=self._source,
         )
         self._print_stats(stats, train, val)
         return stats
+
+    def _load_positives(self) -> list[dict[str, object]]:
+        examples: list[dict[str, object]] = []
+        if self._source in ("anthropic", "mixed"):
+            examples.extend(self._load_adversarial())
+        if self._source in ("injectagent", "mixed"):
+            examples.extend(self._load_inject_agent())
+        if not examples:
+            print("No positives loaded; using synthetic positives.")
+            examples.extend(self._synthetic_positive(200))
+        return examples
+
+    def _load_negatives(self) -> list[dict[str, object]]:
+        examples: list[dict[str, object]] = []
+        if self._source in ("anthropic", "mixed"):
+            examples.extend(self._load_benign())
+        if self._source in ("injectagent", "mixed"):
+            examples.extend(self._load_bare_benign())
+        if self._source == "mixed" and not self._benign_path.exists():
+            examples.extend(self._synthetic_benign(1000))
+        if not examples:
+            print("No negatives loaded; generating synthetic benign examples.")
+            examples.extend(self._synthetic_benign(1000))
+        return examples
+
+    def _carve_holdout(
+        self,
+        rows: list[dict[str, object]],
+        rng: random.Random,
+    ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+        if self._holdout_fraction <= 0 or not rows:
+            return [], list(rows)
+        rng.shuffle(rows)
+        n_hold = max(1, int(len(rows) * self._holdout_fraction))
+        return rows[:n_hold], rows[n_hold:]
+
+    def _write_holdout(
+        self,
+        positives: list[dict[str, object]],
+        negatives: list[dict[str, object]],
+    ) -> None:
+        self._holdout_dir.mkdir(parents=True, exist_ok=True)
+        adv_path = self._holdout_dir / "adversarial.jsonl"
+        ben_path = self._holdout_dir / "benign.jsonl"
+        with adv_path.open("w", encoding="utf-8") as handle:
+            for row in positives:
+                handle.write(
+                    json.dumps(
+                        {
+                            "message_text": row["text"],
+                            "attack_class": row.get("attack_class", "GOAL_HIJACK"),
+                            "label": 1,
+                            "split": "holdout",
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
+        with ben_path.open("w", encoding="utf-8") as handle:
+            for row in negatives:
+                handle.write(
+                    json.dumps(
+                        {
+                            "message_text": row["text"],
+                            "sender_id": "researcher",
+                            "label": 0,
+                            "split": "holdout",
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
+        print(f"Holdout written: {adv_path} ({len(positives)}), {ben_path} ({len(negatives)})")
+
+    def _write_manifest(
+        self,
+        *,
+        train_count: int,
+        val_count: int,
+        holdout_pos: int,
+        holdout_neg: int,
+    ) -> None:
+        manifest = {
+            "source": self._source,
+            "seed": self._seed,
+            "holdout_fraction": self._holdout_fraction,
+            "content_attacks_only": self._content_attacks_only,
+            "train_count": train_count,
+            "val_count": val_count,
+            "holdout_positive": holdout_pos,
+            "holdout_negative": holdout_neg,
+            "benign_path": str(self._benign_path),
+            "adversarial_path": str(self._adversarial_path),
+        }
+        path = self._output_dir / "prepare_manifest.json"
+        path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
     def _load_inject_agent(self) -> list[dict[str, object]]:
         examples: list[dict[str, object]] = []
@@ -127,7 +263,29 @@ class DatasetPreparer:
     def _load_adversarial(self) -> list[dict[str, object]]:
         if not self._adversarial_path.exists():
             return []
-        return self._read_jsonl(self._adversarial_path, text_key="message_text", label=1)
+        rows: list[dict[str, object]] = []
+        with self._adversarial_path.open(encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                record = json.loads(line)
+                text = record.get("message_text") or record.get("text")
+                if not text:
+                    continue
+                attack_class = str(record.get("attack_class", ""))
+                # Trust/capability attacks are deterministic layers — skip for ML labels.
+                if self._content_attacks_only and attack_class not in _CONTENT_ATTACK_CLASSES:
+                    if attack_class in ("IMPERSONATION", "CAPABILITY_ESCALATION"):
+                        continue
+                rows.append(
+                    {
+                        "text": str(text),
+                        "label": 1,
+                        "attack_class": attack_class or "UNKNOWN",
+                    }
+                )
+        return rows
 
     @staticmethod
     def _read_jsonl(path: Path, text_key: str, label: int) -> list[dict[str, object]]:
@@ -183,7 +341,8 @@ class DatasetPreparer:
     def _write_jsonl(path: Path, rows: list[dict[str, object]]) -> None:
         with path.open("w", encoding="utf-8") as handle:
             for row in rows:
-                handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+                payload = {"text": row["text"], "label": row["label"]}
+                handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
 
     @staticmethod
     def _print_stats(
@@ -196,13 +355,47 @@ class DatasetPreparer:
         val_pos = sum(1 for ex in val if ex["label"] == 1)
         val_neg = len(val) - val_pos
         print("\n=== Dataset Preparation Complete ===")
+        print(f"Source:          {stats.source}")
         print(f"Total examples:  {stats.total_examples}")
         print(f"Positive (inj):  {stats.positive_count}")
         print(f"Negative (ben):  {stats.negative_count}")
+        print(f"Holdout (+/-):   {stats.holdout_positive}/{stats.holdout_negative}")
         print(f"Train total:     {stats.train_count}  (+{train_pos}/-{train_neg})")
         print(f"Val total:       {stats.val_count}    (+{val_pos}/-{val_neg})")
         print("====================================\n")
 
 
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Prepare AgentGuard ML training JSONL")
+    parser.add_argument(
+        "--source",
+        choices=("anthropic", "mixed", "injectagent"),
+        default="anthropic",
+        help="Primary data source (default: anthropic benchmark JSONL)",
+    )
+    parser.add_argument("--output-dir", default="training/data")
+    parser.add_argument("--benign-path", default="benchmarks/dataset/benign.jsonl")
+    parser.add_argument("--adversarial-path", default="benchmarks/dataset/adversarial.jsonl")
+    parser.add_argument("--holdout-dir", default="benchmarks/dataset/holdout")
+    parser.add_argument("--holdout-fraction", type=float, default=0.20)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--include-deterministic-attacks",
+        action="store_true",
+        help="Include IMPERSONATION/CAPABILITY_ESCALATION rows as ML positives",
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    DatasetPreparer().prepare()
+    args = _parse_args()
+    DatasetPreparer(
+        output_dir=args.output_dir,
+        benign_path=args.benign_path,
+        adversarial_path=args.adversarial_path,
+        holdout_dir=args.holdout_dir,
+        seed=args.seed,
+        source=args.source,
+        holdout_fraction=args.holdout_fraction,
+        content_attacks_only=not args.include_deterministic_attacks,
+    ).prepare()

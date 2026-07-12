@@ -294,6 +294,36 @@ class BenchmarkResults:
     timestamp: str
     layer_totals: dict[str, int] = field(default_factory=dict)
     false_positive_by_layer: dict[str, int] = field(default_factory=dict)
+    stage_timing_p95_ms: dict[str, float] = field(default_factory=dict)
+
+
+def measure_stage_timings(
+    guard: AgentGuard,
+    texts: list[str],
+) -> dict[str, float]:
+    """Return P95 ms for rule filter, ML score, and consistency stages."""
+    rule_ms: list[float] = []
+    ml_ms: list[float] = []
+    consistency_ms: list[float] = []
+    for text in texts:
+        start = time.perf_counter()
+        guard._rules.scan(text)  # noqa: SLF001
+        rule_ms.append((time.perf_counter() - start) * 1000)
+
+        start = time.perf_counter()
+        if guard._ml.is_model_loaded():  # noqa: SLF001
+            guard._ml.score(text)  # noqa: SLF001
+        ml_ms.append((time.perf_counter() - start) * 1000)
+
+        start = time.perf_counter()
+        guard._consistency.check(text)  # noqa: SLF001
+        consistency_ms.append((time.perf_counter() - start) * 1000)
+
+    return {
+        "rule_filter_p95_ms": round(_percentile(rule_ms, 95), 3),
+        "ml_scorer_p95_ms": round(_percentile(ml_ms, 95), 3),
+        "consistency_p95_ms": round(_percentile(consistency_ms, 95), 3),
+    }
 
 
 class BenchmarkEvaluator:
@@ -373,11 +403,21 @@ class BenchmarkEvaluator:
         *,
         limit: int | None = None,
         progress_every: int = 250,
+        stage_timing_sample: int = 0,
     ) -> BenchmarkResults:
         """Evaluate detection rate and latency across adversarial and benign sets."""
         adversarial = self._load_jsonl(adversarial_path, limit=limit) or _HARDCODED_ADVERSARIAL
         benign = self._load_jsonl(benign_path, limit=limit) or _HARDCODED_BENIGN
 
+        stage_timings: dict[str, float] = {}
+        if stage_timing_sample > 0:
+            sample_texts = [
+                str(ex.get("message_text", ""))
+                for ex in (adversarial[: stage_timing_sample // 2] + benign[: stage_timing_sample // 2])
+                if ex.get("message_text")
+            ]
+            stage_timings = measure_stage_timings(self._guard, sample_texts)
+            print("Stage timing P95 (ms):", stage_timings)
         adv_records: list[dict[str, Any]] = []
         for index, example in enumerate(adversarial, start=1):
             adv_records.append(self._evaluate_adversarial_example(example))
@@ -474,6 +514,7 @@ class BenchmarkEvaluator:
             model_loaded=self._guard._ml.is_model_loaded(),  # noqa: SLF001
             timestamp=datetime.now(UTC).isoformat(),
             layer_totals=layer_totals,
+            stage_timing_p95_ms=stage_timings,
         )
 
     def generate_report(self, results: BenchmarkResults, output_path: str) -> None:
@@ -492,10 +533,25 @@ class BenchmarkEvaluator:
             f"| Total adversarial examples | {results.total_adversarial} |",
             f"| Total benign examples | {results.total_benign} |",
             "",
-            "## False Positives by Layer",
-            "| Layer | Benign Flagged |",
-            "|-------|----------------|",
         ]
+        if results.stage_timing_p95_ms:
+            lines.extend(
+                [
+                    "## Stage Timing P95",
+                    "| Stage | P95 (ms) |",
+                    "|-------|----------|",
+                ]
+            )
+            for stage, value in results.stage_timing_p95_ms.items():
+                lines.append(f"| {stage} | {value} |")
+            lines.append("")
+        lines.extend(
+            [
+                "## False Positives by Layer",
+                "| Layer | Benign Flagged |",
+                "|-------|----------------|",
+            ]
+        )
         for layer in ("rule_filter", "ml_scorer", "trust_layer", "consistency", "unknown"):
             count = results.false_positive_by_layer.get(layer, 0)
             label = layer.replace("_", " ").title()
@@ -564,7 +620,7 @@ def create_benchmark_guard(
         audit_log_path=audit_log_path,
         task_objective=task_objective,
         consistency_threshold=0.10,
-        consistency_ml_risk_floor=0.40,
+        consistency_ml_risk_floor=0.75,
         require_ml_model=require_ml_model,
     )
     guard.register_agent(
@@ -650,6 +706,12 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Fail fast when risk_scorer.onnx is missing",
     )
+    parser.add_argument(
+        "--stage-timing-sample",
+        type=int,
+        default=0,
+        help="If >0, measure per-stage P95 latency on N sample messages before full eval",
+    )
     return parser.parse_args()
 
 
@@ -672,6 +734,7 @@ if __name__ == "__main__":
         adversarial_path=args.adversarial_path,
         benign_path=args.benign_path,
         limit=limit,
+        stage_timing_sample=args.stage_timing_sample,
     )
     Path(args.report_path).parent.mkdir(parents=True, exist_ok=True)
     evaluator.generate_report(results, args.report_path)
