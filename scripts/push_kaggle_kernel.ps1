@@ -68,6 +68,21 @@ if (Test-Path "benchmarks") {
     New-Item -ItemType Directory -Path (Join-Path $BundleRoot "benchmarks/dataset") -Force | Out-Null
 }
 
+$AdvJsonl = Join-Path $BundleRoot "benchmarks/dataset/adversarial.jsonl"
+$BenJsonl = Join-Path $BundleRoot "benchmarks/dataset/benign.jsonl"
+if (-not (Test-Path $AdvJsonl) -or -not (Test-Path $BenJsonl)) {
+    Write-Error @"
+Anthropic benchmark JSONL missing from the Kaggle bundle.
+Expected:
+  benchmarks/dataset/adversarial.jsonl
+  benchmarks/dataset/benign.jsonl
+Restore the corpus (HF download or local copy), then re-run this script.
+"@
+}
+$AdvLines = (Get-Content $AdvJsonl | Measure-Object -Line).Lines
+$BenLines = (Get-Content $BenJsonl | Measure-Object -Line).Lines
+Write-Host "Bundling Anthropic corpus: $AdvLines adversarial + $BenLines benign"
+
 $DatasetStage = Join-Path $env:TEMP "agentguard-kaggle-dataset"
 if (Test-Path $DatasetStage) { Remove-Item $DatasetStage -Recurse -Force }
 New-Item -ItemType Directory -Path $DatasetStage | Out-Null
@@ -119,5 +134,6 @@ Write-Host "Kernel pushed with dataset $DatasetId attached."
 Write-Host "Watch progress: https://www.kaggle.com/code/$KernelSlug"
 Write-Host ""
 Write-Host "CLI push already starts a background run. Cancel duplicate Active Events if any."
-Write-Host "After success:"
-Write-Host "  py -3.12 -m kaggle kernels output $KernelSlug -p .\kaggle-output"
+Write-Host "After success (logs must show HF/ONNX probe PASS):"
+Write-Host "  .\scripts\download_kaggle_model.ps1"
+Write-Host "  py -3.12 scripts/verify_model.py"
