@@ -6,4 +6,4 @@ from agentguard.firewall import AgentGuard
 
 __all__ = ["AgentGuard", "AgentGuardException", "CapabilityManifest"]
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

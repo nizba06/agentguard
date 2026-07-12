@@ -2,6 +2,32 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.1] - 2026-07-12
+
+### Changed
+
+- Split `firewall.py` into a thin public entry point (`AgentGuard`) plus
+  `firewall_ops.FirewallEngine` / `firewall_types` (restores the 150-line
+  `.cursorrules` cap on the entry module)
+- Default `risk_threshold` raised from 0.75 → 0.85 and
+  `consistency_ml_risk_floor` from 0.15 → 0.40 to reduce false positives
+- Expanded rule filter to 50+ high-precision signatures; removed bare
+  `"act as"` (too broad for benign prose)
+- `docs/REQUIREMENTS.md` reconciled with shipped reality: in-process Trust
+  Authority, Python 3.11/3.12 only, and measured NFR table vs v1.0 targets
+- Benchmark report refreshed on Anthropic corpus: 37.1% detection, 28.9% FPR,
+  ~1.59 s P95 (CPU)
+
+### Added
+
+- `MCPOutputInspector.wrap_tool_async` and `AgentGuard.wrap_mcp_tool_async`
+  for async MCP tool callables
+
+### Fixed
+
+- Rules-only / unloaded-model path no longer calls `MLRiskScorer.score()`
+  (eliminates per-message `ModelNotLoadedWarning` spam)
+
 ## [0.1.0] - 2026-07-11
 
 ### Added

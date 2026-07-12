@@ -199,3 +199,65 @@ def test_preview_can_be_disabled(researcher_manifest, tmp_path) -> None:
     sig = guard.sign_payload("researcher", payload)
     guard.inspect_message("researcher", "writer", payload.decode(), payload, signature=sig)
     assert guard._logger.entries[-1].message_preview is None  # noqa: SLF001
+
+
+def test_rules_only_mode_does_not_emit_model_warning(
+    researcher_manifest,
+    tmp_path,
+) -> None:
+    import warnings
+
+    from agentguard.inspector.ml_scorer import ModelNotLoadedWarning
+
+    guard = AgentGuard(
+        audit_log_path=str(tmp_path / "audit.jsonl"),
+        require_ml_model=False,
+    )
+    guard.register_agent("researcher", researcher_manifest)
+    payload = b"Summarise public pricing data from filings."
+    sig = guard.sign_payload("researcher", payload)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        decision = guard.inspect_message(
+            "researcher",
+            "writer",
+            payload.decode(),
+            payload,
+            signature=sig,
+        )
+    assert decision.action == ACTION_FORWARD
+    assert not any(w.category is ModelNotLoadedWarning for w in caught)
+
+
+def test_pipeline_status_uses_raised_risk_floor(
+    researcher_manifest,
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from agentguard.inspector.consistency import ConsistencyResult
+
+    guard = AgentGuard(
+        audit_log_path=str(tmp_path / "audit.jsonl"),
+        task_objective="Analyse Q3 competitor pricing",
+        consistency_threshold=0.10,
+        consistency_ml_risk_floor=0.40,
+        risk_threshold=0.85,
+    )
+    guard.register_agent("researcher", researcher_manifest)
+    monkeypatch.setattr(guard._ml, "is_model_loaded", lambda: True)  # noqa: SLF001
+    monkeypatch.setattr(guard._ml, "score", lambda _msg: 0.25)  # noqa: SLF001
+    monkeypatch.setattr(
+        guard._consistency,
+        "check",
+        lambda _msg: ConsistencyResult(consistent=False, similarity_score=0.05),
+    )
+    payload = b"Researcher to orchestrator: Vector DB query returned 47 documents."
+    sig = guard.sign_payload("researcher", payload)
+    decision = guard.inspect_message(
+        "researcher",
+        "writer",
+        payload.decode(),
+        payload,
+        signature=sig,
+    )
+    assert decision.action == ACTION_FORWARD

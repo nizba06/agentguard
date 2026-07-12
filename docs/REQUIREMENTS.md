@@ -368,12 +368,13 @@ rather than implicitly trusted away.
   initialisation and not persisted beyond the pipeline run. A key from
   one run SHALL NOT be valid for any subsequent run.
 
-- FR-2.6 The Trust Authority SHALL operate as an independent lightweight
-  process with no runtime dependency on any agent in the pipeline.
+- FR-2.6 The Trust Authority SHALL operate as an in-process component
+  with no runtime dependency on any agent in the pipeline. (v0.1 ships
+  in-process only; an optional sidecar process remains a future
+  enhancement and is not required for FR-5.4 zero-infrastructure use.)
 
 - FR-2.7 The Trust Authority SHALL distribute public keys to all
-  registered agents via an encrypted in-process channel at
-  initialisation.
+  registered agents via an in-process channel at initialisation.
 
 **FR-3 Capability Manifest Enforcement**
 
@@ -445,22 +446,26 @@ rather than implicitly trusted away.
 
 **6. Non-Functional Requirements**
 
-|  |  |
-|----|----|
-| **Requirement** | **Specification** |
-| P95 inspection latency (CPU) | \< 15ms per message (rule filter + ML scorer + consistency check combined) |
-| P95 inspection latency (GPU) | \< 4ms per message |
-| False positive rate | \< 3% on a representative corpus of 5,000 benign inter-agent messages from real LangGraph pipelines |
-| Attack detection rate | \> 90% across all five defined attack classes in the reference test harness |
-| ONNX model size | \< 120MB — must be embeddable without a separate model server or GPU requirement |
-| Memory overhead | \< 200MB RAM for the complete AgentGuard middleware process, excluding the ONNX model |
-| Python version support | 3.10, 3.11, 3.12 |
-| Framework support | LangGraph ≥0.2; CrewAI ≥0.70; AutoGen ≥0.4 |
-| Operating system support | Linux (primary, fully tested); macOS; Windows (community support tier) |
-| Licence | Apache 2.0 — enterprise-compatible, compatible with all major open-source agent frameworks |
-| Test coverage | \> 85% line coverage across all core modules |
-| Startup overhead | Pipeline initialisation (keypair generation + manifest validation) \< 500ms for up to 20 agents |
-| Documentation | Full API reference; quick-start guide targeting \< 5 minutes from pip install to first secured pipeline run |
+|  |  |  |
+|----|----|----|
+| **Requirement** | **v1.0 target** | **v0.1 measured (Anthropic corpus)** |
+| P95 inspection latency (CPU) | \< 15ms per message | ~805 ms – 1.06 s (ONNX DeBERTa; use rules-only / GPU / async) |
+| P95 inspection latency (GPU) | \< 4ms per message | Not yet published; `onnxruntime-gpu` supported |
+| False positive rate | \< 3% on 5,000 benign messages | 42.2% baseline; defaults raised to `risk_threshold=0.85` and `consistency_ml_risk_floor=0.40` to reduce FPR (re-measure after tune) |
+| Attack detection rate | \> 90% across attack classes | 40.2% overall (Layer 2/3 deterministic classes at 100%; ML-dependent classes lag) |
+| ONNX model size | \< 120MB | ~540 MB; not bundled in the PyPI wheel (download separately) |
+| Memory overhead | \< 200MB RAM excl. ONNX model | Not separately published |
+| Python version support | 3.11, 3.12 | 3.11, 3.12 only (`python = ">=3.11,<3.13"`); 3.10 dropped |
+| Framework support | LangGraph ≥0.2; CrewAI ≥0.70; AutoGen ≥0.4 | Optional extras; same version floors |
+| Operating system support | Linux (primary); macOS; Windows | Linux / macOS / Windows |
+| Licence | Apache 2.0 | Apache 2.0 |
+| Test coverage | \> 85% line coverage | 87.4% |
+| Startup overhead | \< 500ms for up to 20 agents | Not separately published |
+| Documentation | Full API reference; quick-start \< 5 minutes | README + Sphinx docs + latency guide |
+
+Targets above remain the product goals. v0.1 must not be marketed as meeting
+the latency, detection-rate, FPR, or model-size targets; use monitor mode or
+rules-only until ML quality and ONNX size improve.
 
 **7. System Architecture**
 
@@ -541,11 +546,12 @@ message:
 
 **Layer 2 — Trust Verifier**
 
-- Trust Authority sidecar: A lightweight process (\< 5MB, no external
-  dependencies) that generates Ed25519 keypairs for each registered
-  agent at pipeline initialisation. Public keys are distributed to all
-  agents via an in-process encrypted channel. The Trust Authority has no
-  network exposure and no persistent state.
+- Trust Authority: An in-process component that generates Ed25519
+  keypairs for each registered agent at pipeline initialisation. Public
+  keys are held in the Trust Authority and used for signature
+  verification; private keys never leave the process. There is no
+  network exposure and no persistent state beyond the pipeline run.
+  (A separate sidecar process is a future option, not required for v0.1.)
 
 - Message signing: Each outgoing message payload is hashed (SHA-256) and
   signed with the sender's private key via PyNaCl. The signature bytes
@@ -617,7 +623,7 @@ message:
 |  |  |
 |----|----|
 | **Component** | **Technology** |
-| Core language | Python 3.10+ |
+| Core language | Python 3.11–3.12 |
 | LangGraph adapter | LangGraph custom node wrapper intercepting StateGraph message passing |
 | CrewAI adapter | CrewAI tool execution hook and agent.execute_task lifecycle middleware |
 | AutoGen adapter | AutoGen GroupChat message filter and conversable_agent on_receive hook |
@@ -865,7 +871,7 @@ publishable contribution to the field.
 |  |  |  |
 |----|----|----|
 | **Risk** | **Likelihood / Impact** | **Mitigation** |
-| High false positive rate disrupts legitimate pipelines and causes developer abandonment | Medium / High | Monitor-only mode for zero-blocking baseline. Configurable threshold documented with guidance. Human review queue for borderline scores. Continuous retraining from false positive reports via the audit log feedback loop. Default threshold set conservatively at 0.75 based on validation set performance. |
+| High false positive rate disrupts legitimate pipelines and causes developer abandonment | Medium / High | Monitor-only mode for zero-blocking baseline. Configurable threshold documented with guidance. Default `risk_threshold=0.85` and `consistency_ml_risk_floor=0.40` favour lower FPR over recall on the novel corpus. Continuous retraining from false positive reports via the audit log feedback loop. |
 | ML classifier evaded by adversarially crafted inter-agent injections scoring below threshold | Medium / High | Three-layer defence: an injection that evades the ML scorer may still fail the rule filter or the consistency check. Open bug bounty policy for confirmed evasions. Adversarial retraining cadence using confirmed evasion examples. Threshold and rule updates delivered via patch releases, not major versions. |
 | P95 latency exceeds tolerance for real-time or high-frequency production pipelines | Low / Medium | ONNX runtime with quantisation option for lower-latency deployments. Async inspection path: non-blocking message delivery for pipelines that can tolerate eventual quarantine. GPU inference path. Monitor-only mode allows deployment without latency impact while collecting inspection data. |
 | Framework API changes (LangGraph, CrewAI, AutoGen) break interception adapters | Medium / Low | Abstract interception interface separates framework-specific adapter code from security core. Automated integration tests run against latest framework versions in CI on each release. Adapter breakage does not affect the security core. Version compatibility matrix maintained in documentation. |
@@ -876,18 +882,25 @@ publishable contribution to the field.
 
 **12.1 Security Performance**
 
-|  |  |
-|----|----|
-| **Metric** | **Target** |
-| Attack detection rate — Indirect Prompt Injection | \> 90% |
-| Attack detection rate — Agent-to-Agent Propagation | \> 88% |
-| Attack detection rate — Rogue Agent Impersonation | 100% (deterministic Layer 2) |
-| Attack detection rate — Capability Escalation | 100% (deterministic Layer 3) |
-| Attack detection rate — MCP Output Poisoning | \> 88% |
-| False positive rate (benign inter-agent message corpus) | \< 3% |
-| P95 inspection latency (CPU, all three layers) | \< 15ms |
-| P95 inspection latency (GPU, all three layers) | \< 4ms |
-| Pipeline initialisation overhead (20 agents) | \< 500ms |
+|  |  |  |
+|----|----|----|
+| **Metric** | **v1.0 target** | **v0.1 measured** |
+| Attack detection rate — Indirect Prompt Injection | \> 90% | 11.0% |
+| Attack detection rate — Agent-to-Agent Propagation | \> 88% | 4.0% |
+| Attack detection rate — Rogue Agent Impersonation | 100% (deterministic Layer 2) | 100% |
+| Attack detection rate — Capability Escalation | 100% (deterministic Layer 3) | 100% |
+| Attack detection rate — MCP Output Poisoning | \> 88% | 9.5% |
+| Attack detection rate — Goal Hijack | \> 88% | 17.0% |
+| Overall attack detection rate | \> 90% | 40.2% |
+| False positive rate (benign corpus) | \< 3% | 42.2% (pre-threshold-tune baseline) |
+| P95 inspection latency (CPU, all three layers) | \< 15ms | ~805 ms |
+| P95 inspection latency (GPU, all three layers) | \< 4ms | Not yet published |
+| Pipeline initialisation overhead (20 agents) | \< 500ms | Not separately published |
+
+Measured figures are from `benchmarks/results/report.md` (Anthropic v1.0
+corpus, ML model loaded, prior defaults). Re-run
+`scripts/run_benchmark_evaluation.ps1 -RequireModel` after threshold/rule
+changes to refresh numbers.
 
 **12.2 Software Quality**
 

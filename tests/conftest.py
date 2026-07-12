@@ -16,7 +16,7 @@ def _disable_auto_ml_model(request: pytest.FixtureRequest, monkeypatch: pytest.M
     if request.node.get_closest_marker("ml_model"):
         return
     missing = Path("__agentguard_test_no_model__") / "risk_scorer.onnx"
-    monkeypatch.setattr("agentguard.firewall.default_model_path", lambda: missing)
+    monkeypatch.setattr("agentguard.firewall_ops.default_model_path", lambda: missing)
 
 
 @pytest.fixture

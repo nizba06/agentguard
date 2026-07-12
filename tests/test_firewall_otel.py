@@ -17,7 +17,8 @@ def test_firewall_exports_audit_entry_to_otel(
         audit_log_path=str(tmp_path / "audit.jsonl"),
         enable_otel_export=True,
     )
-    guard._otel = mock_otel
+    guard._engine.otel = mock_otel  # noqa: SLF001
+    guard._otel = mock_otel  # noqa: SLF001 — keep alias in sync for callers
     guard.register_agent("researcher", researcher_manifest)
 
     payload = b"Summarise public pricing data from filings."

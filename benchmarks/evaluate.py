@@ -558,13 +558,13 @@ def create_benchmark_guard(
         audit_path.unlink()
 
     guard = AgentGuard(
-        risk_threshold=0.75,
+        risk_threshold=0.85,
         enable_trust_attestation=True,
         enable_capability_enforcement=True,
         audit_log_path=audit_log_path,
         task_objective=task_objective,
         consistency_threshold=0.10,
-        consistency_ml_risk_floor=0.15,
+        consistency_ml_risk_floor=0.40,
         require_ml_model=require_ml_model,
     )
     guard.register_agent(

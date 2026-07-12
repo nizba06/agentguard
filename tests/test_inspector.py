@@ -30,8 +30,16 @@ def test_rule_filter_passes_benign() -> None:
     assert not result.flagged
 
 
-def test_rule_count_at_least_30() -> None:
-    assert InjectionRuleFilter().rule_count >= 30
+def test_rule_count_at_least_50() -> None:
+    assert InjectionRuleFilter().rule_count >= 50
+
+
+def test_rule_filter_does_not_flag_benign_act_as_phrasing() -> None:
+    filt = InjectionRuleFilter()
+    result = filt.scan(
+        "Researcher to writer: please act as the lead editor and tighten the draft."
+    )
+    assert not result.flagged
 
 
 def test_ml_scorer_returns_half_when_not_loaded() -> None:

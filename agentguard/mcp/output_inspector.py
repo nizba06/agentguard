@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import functools
-from collections.abc import Callable
+import inspect
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, TypeVar
 
@@ -12,6 +13,7 @@ from agentguard.inspector.ml_scorer import MLRiskScorer
 from agentguard.inspector.rule_filter import InjectionRuleFilter
 
 F = TypeVar("F", bound=Callable[..., Any])
+AF = TypeVar("AF", bound=Callable[..., Awaitable[Any]])
 
 
 class MCPPoisoningException(AgentGuardException):
@@ -63,7 +65,7 @@ class MCPOutputInspector:
         self,
         rule_filter: InjectionRuleFilter,
         ml_scorer: MLRiskScorer,
-        threshold: float = 0.75,
+        threshold: float = 0.85,
     ) -> None:
         self._rule_filter = rule_filter
         self._ml_scorer = ml_scorer
@@ -77,7 +79,9 @@ class MCPOutputInspector:
     ) -> MCPInspectionResult:
         """Score MCP tool output for injection risk."""
         rule = self._rule_filter.scan(output)
-        ml_score = self._ml_scorer.score(output)
+        ml_score = (
+            self._ml_scorer.score(output) if self._ml_scorer.is_model_loaded() else 0.0
+        )
         risk = max(ml_score, 0.9 if rule.flagged else 0.0)
         flagged = rule.flagged or ml_score >= self._threshold
         patterns = list(rule.matched_rules) if rule.flagged else []
@@ -89,8 +93,29 @@ class MCPOutputInspector:
             calling_agent_id=calling_agent_id,
         )
 
+    def _raise_if_unsafe(self, inspection: MCPInspectionResult) -> None:
+        if inspection.safe:
+            return
+        raise MCPPoisoningException(
+            tool_name=inspection.tool_name,
+            agent_id=inspection.calling_agent_id,
+            risk_score=inspection.risk_score,
+            flagged_patterns=inspection.flagged_patterns,
+            failure_reason=(
+                f"mcp_output: {inspection.flagged_patterns[0]}"
+                if inspection.flagged_patterns
+                else f"mcp_output: risk={inspection.risk_score:.3f}"
+            ),
+        )
+
     def wrap_tool(self, tool_fn: F, guard: Any, agent_id: str) -> F:
-        """Wrap a tool callable with MCP output inspection."""
+        """Wrap a synchronous tool callable with MCP output inspection."""
+        del guard  # reserved for future audit context
+        if inspect.iscoroutinefunction(tool_fn):
+            msg = (
+                "wrap_tool() received an async callable; use wrap_tool_async() instead"
+            )
+            raise TypeError(msg)
 
         @functools.wraps(tool_fn)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -98,18 +123,27 @@ class MCPOutputInspector:
             text = result if isinstance(result, str) else str(result)
             tool_name = getattr(tool_fn, "__name__", "mcp_tool")
             inspection = self.inspect_output(tool_name, text, agent_id)
-            if not inspection.safe:
-                raise MCPPoisoningException(
-                    tool_name=tool_name,
-                    agent_id=agent_id,
-                    risk_score=inspection.risk_score,
-                    flagged_patterns=inspection.flagged_patterns,
-                    failure_reason=(
-                        f"mcp_output: {inspection.flagged_patterns[0]}"
-                        if inspection.flagged_patterns
-                        else f"mcp_output: risk={inspection.risk_score:.3f}"
-                    ),
-                )
+            self._raise_if_unsafe(inspection)
+            return result
+
+        return wrapper  # type: ignore[return-value]
+
+    def wrap_tool_async(self, tool_fn: AF, guard: Any, agent_id: str) -> AF:
+        """Wrap an async tool callable with MCP output inspection."""
+        del guard  # reserved for future audit context
+        if not inspect.iscoroutinefunction(tool_fn):
+            msg = (
+                "wrap_tool_async() requires an async callable; use wrap_tool() for sync"
+            )
+            raise TypeError(msg)
+
+        @functools.wraps(tool_fn)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            result = await tool_fn(*args, **kwargs)
+            text = result if isinstance(result, str) else str(result)
+            tool_name = getattr(tool_fn, "__name__", "mcp_tool")
+            inspection = self.inspect_output(tool_name, text, agent_id)
+            self._raise_if_unsafe(inspection)
             return result
 
         return wrapper  # type: ignore[return-value]

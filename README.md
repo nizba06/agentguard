@@ -31,7 +31,7 @@ agentguard inspect -m "Summarise public pricing data from filings."
 from agentguard import AgentGuard, CapabilityManifest
 
 guard = AgentGuard(
-    risk_threshold=0.75,
+    risk_threshold=0.85,
     task_objective="Analyse Q3 competitor pricing",
     audit_log_path="./audit.jsonl",
     # Set True in production after installing the ONNX model
@@ -189,12 +189,12 @@ Results: `benchmarks/results/report.md`
 
 | Metric | Value |
 |--------|-------|
-| Overall detection rate | 40.2% |
-| False positive rate | 42.2% |
-| P95 inspection latency | ~805 ms (CPU ONNX) |
+| Overall detection rate | 37.1% |
+| False positive rate | 28.9% |
+| P95 inspection latency | ~1.59 s (CPU ONNX) |
 | ML model loaded | Yes |
 
-See [latency modes](#latency-and-deployment-modes) for production trade-offs.
+Measured 2026-07-12 after FPR-oriented defaults (`risk_threshold=0.85`, `consistency_ml_risk_floor=0.40`). Still below v1.0 NFR targets (>90% detection, <3% FPR, <15 ms P95). Prefer **monitor** or **rules-only** until ML quality improves. See [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) §6.
 
 Reproduce with the HF corpus or local `benchmarks/dataset/*.jsonl` after `python scripts/download_release_model.py`.
 
