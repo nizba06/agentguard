@@ -78,15 +78,16 @@ Generated via Anthropic Messages Batch API (single batch job, 2026-07-05):
 
 A zero-cost public-source builder also exists in the AgentGuard repo (`benchmarks/build_dataset_from_public.py`) for local development without this corpus.
 
-## Reported metrics (AgentGuard v0.1.0, CPU ONNX)
+## Reported metrics (AgentGuard 1.0.0 — holdout authority)
 
-| Metric | Value |
-|--------|-------|
-| Overall detection rate | 40.2% |
-| False positive rate | 42.2% |
-| P95 inspection latency | ~805 ms |
+| Metric | Holdout | Notes |
+|--------|---------|-------|
+| Overall detection rate | 99.4% | 160 content-attack examples |
+| False positive rate | 0.0% | 1,000 benign |
+| P95 inspection latency | ~3.4 s | CPU INT8; use GPU/async for high QPS |
+| ONNX size | ~164 MB | Dynamic INT8; not in the wheel |
 
-See `benchmarks/results/report.md` in the GitHub repository.
+See `benchmarks/results/holdout_report.md` and `docs/V1_ROADMAP.md` in the GitHub repository.
 
 ## Usage
 

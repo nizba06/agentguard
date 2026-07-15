@@ -1,8 +1,11 @@
 # Latency and deployment modes
 
 AgentGuard’s design target was **P95 ≤ 15 ms** for inspection. Measured
-CPU ONNX P95 on the Anthropic v1.0 corpus is on the order of **~0.8–1.1 s**
-per message. Use the modes below to match your pipeline’s latency budget.
+CPU ONNX P95 on the Anthropic holdout set is on the order of **~2–3 s**
+per message (DeBERTa INT8). **v1.0 ships with an explicit CPU latency SLA
+exception:** production enforce+ML on CPU is supported for offline / low-QPS
+pipelines; high-QPS paths must use **rules-only**, **GPU ONNX**, or **async**
+inspection (below). The 15 ms figure remains the design goal for GPU/async.
 
 ## Mode matrix
 

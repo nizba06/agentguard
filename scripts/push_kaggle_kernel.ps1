@@ -91,6 +91,36 @@ $CodeZip = Join-Path $DatasetStage "agentguard-code.zip"
 if (Test-Path $CodeZip) { Remove-Item $CodeZip -Force }
 Compress-Archive -Path (Join-Path $BundleRoot "*") -DestinationPath $CodeZip -Force
 
+Write-Host "Verifying bundle before upload..."
+$TrainPy = Join-Path $BundleRoot "training/train.py"
+$ProbePy = Join-Path $BundleRoot "training/probe_checkpoint.py"
+$ScoringPy = Join-Path $BundleRoot "training/scoring.py"
+$TokPy = Join-Path $BundleRoot "training/tokenizer_utils.py"
+foreach ($Required in @($TrainPy, $ProbePy, $ScoringPy, $TokPy)) {
+    if (-not (Test-Path $Required)) {
+        Write-Error "Bundle incomplete: missing $Required"
+    }
+}
+$TrainText = Get-Content $TrainPy -Raw
+if ($TrainText -match '\(r for r in train_rows') {
+    Write-Error "Stale generator-slice bug still present in bundle training/train.py — aborting upload."
+}
+$ProbeText = Get-Content $ProbePy -Raw
+if ($ProbeText -notmatch 'mean_injection_probability') {
+    Write-Error "Bundle probe_checkpoint.py is missing mean_injection_probability — aborting upload."
+}
+$env:PYTHONPATH = $BundleRoot
+$ImportCheck = & py -3.12 -c @"
+from training.scoring import resolve_probe_texts, PROBE_MIN_GAP
+from training import probe_checkpoint, export_onnx, train
+assert callable(probe_checkpoint.resolve_probe_texts)
+print('bundle-import-ok', PROBE_MIN_GAP)
+"@ 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Bundle import smoke failed:`n$ImportCheck"
+}
+Write-Host $ImportCheck
+
 $DatasetMetaPath = Join-Path $DatasetStage "dataset-metadata.json"
 $DatasetMetaText = (Get-Content "scripts/kaggle/dataset-metadata.json" -Raw) -replace '"id": "[^"]+"', "`"id`": `"$DatasetId`""
 [System.IO.File]::WriteAllText($DatasetMetaPath, $DatasetMetaText)
@@ -109,6 +139,9 @@ if ($Create.ExitCode -ne 0 -or $Create.Output -match 'Dataset creation error|alr
 } else {
     Write-Host $Create.Output
 }
+
+Write-Host "Waiting 90s for the new dataset version to become attachable..."
+Start-Sleep -Seconds 90
 
 Set-Location $Root
 

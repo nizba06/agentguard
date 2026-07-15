@@ -81,7 +81,7 @@ Full guide: [docs/source/latency.md](docs/source/latency.md).
    # PowerShell: .\scripts\install_model.ps1 -SourceDir .\path\to\model\dir
    ```
 
-   Sources: [GitHub Releases v0.1.0](https://github.com/nizba06/agentguard/releases/tag/v0.1.0), local training, or Kaggle (`.\scripts\download_kaggle_model.ps1`).
+   Sources: [GitHub Releases v1.0.0](https://github.com/nizba06/agentguard/releases/tag/v1.0.0), local training, or Kaggle (`.\scripts\download_kaggle_model.ps1`).
 
 2. **Confirm health**:
 
@@ -185,18 +185,26 @@ Sources: InjecAgent (GitHub) + inter-agent framing templates + pipeline-style be
 
 Results: `benchmarks/results/report.md`
 
-### Latest results (Anthropic v1.0 corpus)
+### Latest results — **holdout is the v1.0 source of truth**
 
-| Metric | Value |
-|--------|-------|
-| Overall detection rate | 37.1% |
-| False positive rate | 28.9% |
-| P95 inspection latency | ~1.59 s (CPU ONNX) |
-| ML model loaded | Yes |
+Uncontaminated 20% holdout (`benchmarks/dataset/holdout/`, 160 adversarial + 1,000 benign), **INT8 ONNX** (2026-07-15):
 
-Measured 2026-07-12 after FPR-oriented defaults (`risk_threshold=0.85`, `consistency_ml_risk_floor=0.75`). Still below v1.0 NFR targets (>90% detection, <3% FPR, <15 ms P95). Prefer **monitor** or **rules-only** until ML quality improves. See [docs/V1_ROADMAP.md](docs/V1_ROADMAP.md).
+| Metric | Holdout | v1.0 gate |
+|--------|---------|-----------|
+| Overall detection rate | **99.4%** | > 90% |
+| False positive rate | **0.0%** | < 3% |
+| P95 inspection latency | ~3.4 s (CPU INT8) | < 15 ms **or** published GPU/async SLA |
+| ONNX model size | ~164 MB INT8 | < 180 MB |
+| ML model loaded | Yes (`verify_model.py` PASS) | Required for enforce+ML |
 
-Reproduce with the HF corpus or local `benchmarks/dataset/*.jsonl` after `python scripts/download_release_model.py`.
+Package version: **1.0.0**. CPU ML P95 does not meet the original 15 ms design target — use rules-only, GPU, or async for high-QPS (see [docs/source/latency.md](docs/source/latency.md)).
+
+```powershell
+.\scripts\run_benchmark_evaluation.ps1 -Holdout -RequireModel
+py -3.12 scripts/check_v1_gates.py --allow-cpu-latency
+```
+
+Reproduce with the HF corpus or local `benchmarks/dataset/*.jsonl` after a verified model install. See [docs/V1_ROADMAP.md](docs/V1_ROADMAP.md).
 
 ### vs Microsoft Agent Governance Toolkit
 
@@ -225,7 +233,7 @@ See [training/kaggle_notebook.ipynb](training/kaggle_notebook.ipynb).
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [REQUIREMENTS.md](docs/REQUIREMENTS.md)
 - [DESIGN.md](docs/DESIGN.md)
-- [Release notes](docs/RELEASE_NOTES_v0.1.0.md)
+- [Release notes v1.0.0](docs/RELEASE_NOTES_v1.0.0.md)
 - [Launch checklist](scripts/LAUNCH_CHECKLIST.md)
 - [Hugging Face dataset card](docs/HUGGINGFACE_DATASET_CARD.md)
 

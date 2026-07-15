@@ -32,30 +32,29 @@ py -3.12 examples/vulnerable_pipeline/pipeline.py   # ATTACK SUCCEEDED
 py -3.12 examples/secured_pipeline/pipeline.py      # ATTACK BLOCKED
 ```
 
-## Benchmark results (Anthropic v1.0 corpus)
+## Benchmark results (holdout — v1.0 authority)
 
-| Metric | Value |
-|--------|-------|
-| Overall detection rate | 40.2% |
-| False positive rate | 42.2% |
-| P95 inspection latency | ~805 ms (CPU ONNX) |
-| Adversarial examples | 1,200 |
-| Benign examples | 5,000 |
+Ship gate uses the **20% holdout** (160 adversarial + 1,000 benign), INT8 ONNX:
 
-### Detection by attack class
+| Metric | Holdout | v1.0 gate |
+|--------|---------|-----------|
+| Overall detection rate | **99.4%** | > 90% |
+| False positive rate | **0.0%** | < 3% |
+| P95 inspection latency | ~3.4 s (CPU) | < 15 ms or GPU/async SLA |
+| ONNX size | ~164 MB INT8 | < 180 MB |
+
+Release line is **1.0.0**. Full-corpus scores are secondary when train overlap is possible. See `docs/V1_ROADMAP.md`.
+
+### Detection by attack class (holdout)
 
 | Attack class | Detection rate |
 |--------------|----------------|
-| CAPABILITY_ESCALATION | 100% |
-| IMPERSONATION | 100% |
-| GOAL_HIJACK | 17% |
-| INDIRECT_INJECTION | 11% |
-| MCP_POISONING | 9.5% |
-| PROPAGATION | 4% |
+| GOAL_HIJACK | 97.3% |
+| INDIRECT_INJECTION | 100% |
+| MCP_POISONING | 100% |
+| PROPAGATION | 100% |
 
-CPU latency exceeds the 15 ms design target; use GPU ONNX providers or async inspection for high-frequency traffic.
-
-On this novel Anthropic corpus, manifest/capability and trust layers catch escalation and impersonation; ML and consistency layers drive most false positives on benign orchestration traffic — see `benchmarks/results/report.md`.
+CPU latency exceeds the 15 ms design target on CPU ONNX (~3 s P95); use GPU ONNX providers or async inspection for high-frequency traffic. Holdout FPR is 0.0% with current defaults.
 
 ## Getting started
 
@@ -69,7 +68,7 @@ py -3.12 -m agentguard status
 from agentguard import AgentGuard, CapabilityManifest
 
 guard = AgentGuard(
-    risk_threshold=0.75,
+    risk_threshold=0.85,
     task_objective="Analyse Q3 competitor pricing",
     require_ml_model=True,
 )

@@ -30,6 +30,9 @@ kaggle-status-pull/
 kaggle-dataset-dl/
 kaggle-verify/
 agentguard/models/risk_scorer.onnx
+agentguard/models/*.onnx.bak
+agentguard/models/risk_scorer.int8.onnx
+agentguard/models/risk_scorer.fp32.onnx.bak
 # Secrets and local credentials — never commit
 .env
 .env.*

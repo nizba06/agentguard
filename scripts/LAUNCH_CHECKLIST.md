@@ -20,8 +20,10 @@ Track everything required to ship **v0.1.0** and **v1.0** follow-ons.
 | P95 latency vs 15 ms | **Documented** | [docs/source/latency.md](../docs/source/latency.md) — rules-only / monitor / GPU / async |
 | Sphinx API docs | **Done** | `docs/source/` + `.readthedocs.yaml` |
 | Microsoft toolkit comparison | **Done** | [docs/MICROSOFT_TOOLKIT_COMPARISON.md](../docs/MICROSOFT_TOOLKIT_COMPARISON.md) |
+| Holdout as ship gate | **Done** | `run_benchmark_evaluation.ps1 -Holdout` + `check_v1_gates.py` |
+| v1.0.0 tag | **Ready to publish** | Gates PASS (99.4% / 0% FPR INT8); commit + tag + PyPI + Release ONNX |
 
-**Bottom line:** Library v0.1.1 is public. Path to v1.0 is ML retrain + FPR/latency gates — see [docs/V1_ROADMAP.md](../docs/V1_ROADMAP.md) and `.\scripts\retrain_checklist.ps1`.
+**Bottom line:** Library **1.0.0** clears holdout gates with INT8 ONNX. Operator steps remaining: git tag, PyPI upload, GitHub Release attach `risk_scorer.onnx` + `model.sha256`. See [docs/V1_ROADMAP.md](../docs/V1_ROADMAP.md).
 
 ---
 

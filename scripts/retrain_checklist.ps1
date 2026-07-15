@@ -1,9 +1,9 @@
-# AgentGuard Phase 1–4 retrain / v1.0 checklist
+# AgentGuard Phase 1-4 retrain / v1.0 checklist
 # Usage:
-#   .\scripts\retrain_checklist.ps1              # print steps + verify local prerequisites
-#   .\scripts\retrain_checklist.ps1 -Prepare     # Anthropic JSONL → training/data + holdout
-#   .\scripts\retrain_checklist.ps1 -Prepare -TrainQuick  # prepare + 1-epoch smoke train
-#   .\scripts\retrain_checklist.ps1 -AllLocal    # prepare, quick train, export if checkpoint exists
+#   .\scripts\retrain_checklist.ps1
+#   .\scripts\retrain_checklist.ps1 -Prepare
+#   .\scripts\retrain_checklist.ps1 -Prepare -TrainQuick
+#   .\scripts\retrain_checklist.ps1 -AllLocal
 
 param(
     [switch]$Prepare,
@@ -25,32 +25,35 @@ function Write-Step([string]$Title) {
     Write-Host "=== $Title ===" -ForegroundColor Cyan
 }
 
-Write-Step "v1.0 gap checklist (Phase 1–4)"
-Write-Host @"
-Phase 1 — ML quality (detection + FPR)
-  [1] Prepare Anthropic-primary train/val + 20% holdout
+Write-Step "v1.0 gap checklist (Phase 1-4)"
+# Single-quoted here-string: ASCII only, no expansion / no [ ] parsing issues
+Write-Host @'
+Phase 1 - ML quality (detection + FPR)
+  (1) Prepare Anthropic-primary train/val + 20% holdout
       py -3.12 training/prepare_dataset.py --source anthropic
-  [2] Fine-tune DeBERTa on Kaggle GPU (preferred) or local CUDA
+  (2) Fine-tune DeBERTa on Kaggle GPU (preferred) or local CUDA
       .\scripts\push_kaggle_kernel.ps1
       OR: poetry run python training/train.py
-  [3] Export ONNX + SHA-256 pin
+  (3) Export ONNX + SHA-256 pin
       poetry run python training/export_onnx.py
       py -3.12 scripts/verify_model.py
-  [4] Evaluate on holdout (uncontaminated) then full corpus
-      py -3.12 benchmarks/evaluate.py --adversarial-path benchmarks/dataset/holdout/adversarial.jsonl --benign-path benchmarks/dataset/holdout/benign.jsonl --require-ml-model
+  (4) Evaluate on holdout (uncontaminated) then full corpus
+      .\scripts\run_benchmark_evaluation.ps1 -Holdout -RequireModel
+      py -3.12 scripts/check_v1_gates.py
       .\scripts\run_benchmark_evaluation.ps1 -RequireModel
 
-Phase 2 — Consistency FPR
-  [5] Ablate consistency (enable_consistency_check=False) on holdout
-  [6] Keep consistency as gray-band / monitor-only if it dominates FPs
+Phase 2 - Consistency FPR
+  (5) Ablate consistency (enable_consistency_check=False) on holdout
+  (6) Keep consistency as gray-band / monitor-only if it dominates FPs
 
-Phase 3 — Latency
-  [7] Stage timings in evaluate report (rules / ML / consistency)
-  [8] Quantized ONNX export; measure CPU P95; document GPU/async SLA
+Phase 3 - Latency
+  (7) Stage timings in evaluate report (rules / ML / consistency)
+  (8) Quantized ONNX export; measure CPU P95; document GPU/async SLA
 
-Phase 4 — Ship 1.0 when gates pass
-  Detection >90%, FPR <3%, latency gate met → tag v1.0.0 + PyPI + Release assets
-"@
+Phase 4 - Ship 1.0 when gates pass
+  .\scripts\ship_v1.ps1 -Apply [-AllowCpuLatency]
+  Detection gt 90%, FPR lt 3%, latency/size gates -> tag v1.0.0 + PyPI + Release assets
+'@
 
 $adv = "benchmarks/dataset/adversarial.jsonl"
 $ben = "benchmarks/dataset/benign.jsonl"
@@ -66,7 +69,7 @@ if (Test-Path $onnx) {
     $mb = [math]::Round((Get-Item $onnx).Length / 1MB, 1)
     Write-Host "ONNX present: $onnx ($mb MB)"
 } else {
-    Write-Host "ONNX missing — download or export before --require-ml-model eval"
+    Write-Host "ONNX missing - download or export before --require-ml-model eval"
 }
 
 if ($AllLocal) {
@@ -83,7 +86,7 @@ if ($Prepare) {
 }
 
 if ($TrainQuick) {
-    Write-Step "Quick train (1 epoch smoke — use Kaggle for real Phase 1)"
+    Write-Step "Quick train (1 epoch smoke - use Kaggle for real Phase 1)"
     py -3.12 training/train.py --quick
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
@@ -98,7 +101,7 @@ if ($EvaluateHoldout) {
     $hAdv = "benchmarks/dataset/holdout/adversarial.jsonl"
     $hBen = "benchmarks/dataset/holdout/benign.jsonl"
     if (-not (Test-Path $hAdv)) {
-        Write-Error "Holdout missing — run with -Prepare first"
+        Write-Error "Holdout missing - run with -Prepare first"
     }
     Write-Step "Evaluate holdout split"
     py -3.12 benchmarks/evaluate.py `

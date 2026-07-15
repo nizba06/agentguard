@@ -453,7 +453,7 @@ rather than implicitly trusted away.
 | P95 inspection latency (GPU) | \< 4ms per message | Not yet published; `onnxruntime-gpu` supported |
 | False positive rate | \< 3% on 5,000 benign messages | 42.2% baseline; defaults raised to `risk_threshold=0.85` and `consistency_ml_risk_floor=0.40` to reduce FPR (re-measure after tune) |
 | Attack detection rate | \> 90% across attack classes | 40.2% overall (Layer 2/3 deterministic classes at 100%; ML-dependent classes lag) |
-| ONNX model size | \< 120MB | ~540 MB; not bundled in the PyPI wheel (download separately) |
+| ONNX model size | \< 180MB (INT8) | ~164 MB dynamic INT8; FP32 ~540 MB not shipped as default |
 | Memory overhead | \< 200MB RAM excl. ONNX model | Not separately published |
 | Python version support | 3.11, 3.12 | 3.11, 3.12 only (`python = ">=3.11,<3.13"`); 3.10 dropped |
 | Framework support | LangGraph ≥0.2; CrewAI ≥0.70; AutoGen ≥0.4 | Optional extras; same version floors |

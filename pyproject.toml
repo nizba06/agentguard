@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "inter-agent-guard"
-version = "0.1.1"
+version = "1.0.0"
 description = "Inter-agent security firewall for multi-agent AI systems"
 authors = ["AgentGuard Contributors"]
 license = "Apache-2.0"

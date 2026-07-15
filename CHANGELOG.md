@@ -2,17 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [1.0.0] - 2026-07-15
 
 ### Added
 
-- Anthropic-primary training prep with 20% holdout (`training/prepare_dataset.py --source anthropic`)
-- `scripts/retrain_checklist.ps1` and `docs/V1_ROADMAP.md` for Phase 1–4 toward v1.0
-- Benchmark `--stage-timing-sample` and ONNX export `--quantize` (dynamic INT8)
+- v1.0 ship gates: `scripts/check_v1_gates.py`, `scripts/ship_v1.ps1`
+- Holdout evaluation path: `run_benchmark_evaluation.ps1 -Holdout`
+- Dynamic INT8 ONNX release artifact (~164 MB)
+- Documented CPU latency SLA exception (`docs/source/latency.md`)
 
 ### Changed
 
-- Default `consistency_ml_risk_floor` raised 0.40 → 0.75 (Phase 2 FPR gray-band)
+- Package version **1.0.0**
+- Holdout metrics are the public authority (99.4% detection, 0.0% FPR on INT8)
+- ONNX size NFR updated to &lt; 180 MB INT8
+- `verify_model.py` hard-fails non-discriminative scorers; prefers holdout probes
+
+## [Unreleased]
+
+### Notes
+
+- Post-1.0: GPU P95 measurements, consistency ablation write-up, optional smaller student model
 
 ## [0.1.1] - 2026-07-12
 

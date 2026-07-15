@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import warnings
 from pathlib import Path
@@ -29,6 +30,22 @@ class MLRiskScorer:
         self._tokenizer: Any | None = None
         self._model_loaded = False
         self._model_path: Path | None = None
+        self._injection_class_index = 1
+
+    @staticmethod
+    def _load_injection_class_index(model_dir: Path) -> int:
+        scorer_config = model_dir / "scorer_config.json"
+        if scorer_config.exists():
+            return int(json.loads(scorer_config.read_text(encoding="utf-8"))["injection_class_index"])
+        config_path = model_dir / "config.json"
+        if config_path.exists():
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            if config.get("injection_class_index") is not None:
+                return int(config["injection_class_index"])
+            for idx, name in (config.get("id2label") or {}).items():
+                if str(name).lower() == "injection":
+                    return int(idx)
+        return 1
 
     def load_model(self, model_path: str) -> None:
         """Load and verify ONNX model and tokenizer."""
@@ -51,13 +68,26 @@ class MLRiskScorer:
             )
 
         import onnxruntime as ort  # noqa: PLC0415
-        from transformers import AutoTokenizer  # noqa: PLC0415
 
         tokenizer_dir = path.parent
         if (tokenizer_dir / "tokenizer_config.json").exists():
-            self._tokenizer = AutoTokenizer.from_pretrained(str(tokenizer_dir))
+            try:
+                from transformers import AutoTokenizer  # noqa: PLC0415
+
+                self._tokenizer = AutoTokenizer.from_pretrained(
+                    str(tokenizer_dir),
+                    use_fast=False,
+                )
+            except Exception:  # noqa: BLE001
+                from transformers import AutoTokenizer  # noqa: PLC0415
+
+                self._tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-v3-small")
         else:
+            from transformers import AutoTokenizer  # noqa: PLC0415
+
             self._tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-v3-small")
+
+        self._injection_class_index = self._load_injection_class_index(tokenizer_dir)
 
         sess_options = ort.SessionOptions()
         sess_options.intra_op_num_threads = 2
@@ -91,8 +121,17 @@ class MLRiskScorer:
 
     def _build_feed(self, inputs: dict[str, Any]) -> dict[str, Any]:
         assert self._session is not None
-        input_names = {item.name for item in self._session.get_inputs()}
-        return {key: val for key, val in inputs.items() if key in input_names}
+        feed: dict[str, Any] = {}
+        for item in self._session.get_inputs():
+            if item.name not in inputs:
+                continue
+            value = inputs[item.name]
+            type_name = (item.type or "").lower()
+            if "int" in type_name:
+                feed[item.name] = np.asarray(value, dtype=np.int64)
+            else:
+                feed[item.name] = value
+        return feed
 
     def score(self, message: str) -> float:
         """Return injection probability in [0.0, 1.0]."""
@@ -112,10 +151,19 @@ class MLRiskScorer:
             padding="max_length",
         )
         outputs = self._session.run(None, self._build_feed(inputs))
-        logits = np.asarray(outputs[0])
+        logits = self._extract_logits(outputs)
         exp = np.exp(logits - np.max(logits, axis=-1, keepdims=True))
         probs = exp / np.sum(exp, axis=-1, keepdims=True)
-        return float(probs[0, 1])
+        return float(probs[0, self._injection_class_index])
+
+    @staticmethod
+    def _extract_logits(outputs: list[Any]) -> np.ndarray:
+        """Prefer the [batch, 2] classification logits over hidden-state tensors."""
+        for output in outputs:
+            arr = np.asarray(output)
+            if arr.ndim == 2 and arr.shape[-1] == 2:
+                return arr
+        return np.asarray(outputs[0])
 
     def is_model_loaded(self) -> bool:
         """Return True when the ONNX session is active."""

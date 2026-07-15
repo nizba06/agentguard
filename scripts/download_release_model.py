@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Download risk_scorer.onnx from the public GitHub release into agentguard/models/.
 
-The PyPI wheel does not bundle ONNX weights (~540 MB). After
+The PyPI wheel does not bundle ONNX weights (~164 MB INT8). After
 ``pip install inter-agent-guard``, run:
 
     python scripts/download_release_model.py
@@ -20,10 +20,10 @@ import urllib.request
 from pathlib import Path
 
 REPO = "nizba06/agentguard"
-TAG = "v0.1.0"
+TAG = "v1.0.0"
 RELEASE = f"https://github.com/{REPO}/releases/download/{TAG}"
 FILES = ("risk_scorer.onnx", "model.sha256")
-UA = "inter-agent-guard/0.1.0"
+UA = "inter-agent-guard/1.0.0"
 
 
 def _models_dir() -> Path:

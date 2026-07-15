@@ -10,7 +10,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-Set-Location (Split-Path $PSScriptRoot -Parent)
+$Root = Split-Path $PSScriptRoot -Parent
+Set-Location $Root
+$env:PYTHONPATH = $Root
 
 Write-Host "Installing training dependencies..."
 py -3.12 -m pip install -q transformers datasets optimum[onnxruntime] scikit-learn accelerate torch sentencepiece protobuf tiktoken
@@ -34,8 +36,16 @@ if ($Quick) {
 Write-Host "Training DeBERTa-v3-small..."
 py -3.12 training/train.py
 
+Write-Host "Probing HF checkpoint..."
+py -3.12 training/probe_checkpoint.py --hf-only
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 Write-Host "Exporting ONNX model..."
 py -3.12 training/export_onnx.py
+
+Write-Host "Probing ONNX model..."
+py -3.12 training/probe_checkpoint.py --onnx-only
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "Verifying model..."
 py -3.12 scripts/verify_model.py

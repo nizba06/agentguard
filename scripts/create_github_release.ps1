@@ -1,12 +1,12 @@
-# Create GitHub release v0.1.0 and attach ONNX model artifacts.
+# Create GitHub release and attach ONNX model artifacts.
 # Prerequisites: gh auth login
 #
 # Usage:
 #   .\scripts\create_github_release.ps1
-#   .\scripts\create_github_release.ps1 -Tag v0.1.0
+#   .\scripts\create_github_release.ps1 -Tag v1.0.0
 
 param(
-    [string]$Tag = "v0.1.0"
+    [string]$Tag = "v1.0.0"
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,7 +25,7 @@ if ($LASTEXITCODE -ne 0) {
 
 $onnx = Join-Path $Root "agentguard/models/risk_scorer.onnx"
 $hashFile = Join-Path $Root "agentguard/models/model.sha256"
-$notes = Join-Path $Root "docs/RELEASE_NOTES_v0.1.0.md"
+$notes = Join-Path $Root "docs/RELEASE_NOTES_v1.0.0.md"
 
 foreach ($path in @($onnx, $hashFile, $notes)) {
     if (-not (Test-Path $path)) {
@@ -39,7 +39,6 @@ if ($expected -ne $actual) {
     Write-Error "ONNX hash mismatch. expected=$expected actual=$actual"
 }
 
-# Ensure tag exists locally and remotely
 $git = "C:\Program Files\Git\bin\git.exe"
 $existing = & $git tag -l $Tag
 if (-not $existing) {
