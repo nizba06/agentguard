@@ -2,7 +2,8 @@
 
 **Released:** 2026-07-15  
 **PyPI:** `inter-agent-guard` · **Import:** `agentguard`  
-**Repo:** https://github.com/nizba06/agentguard
+**Repo:** https://github.com/nizba06/agentguard  
+**Docs:** https://inter-agent-guard.readthedocs.io/
 
 ## Highlights
 

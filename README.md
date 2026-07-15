@@ -3,7 +3,9 @@
 Inter-agent security firewall for multi-agent AI systems (LangGraph, CrewAI, AutoGen).
 
 **PyPI:** `pip install inter-agent-guard` · **Import / CLI:** `agentguard`  
-**Docs:** [docs/](docs/) · [Blog post](docs/BLOG_POST.md) · [Demo](https://github.com/nizba06/inter-agent-guard-demo)
+**Docs:** [inter-agent-guard.readthedocs.io](https://inter-agent-guard.readthedocs.io/) · [Blog post](docs/BLOG_POST.md) · [Demo](https://github.com/nizba06/inter-agent-guard-demo)
+
+> **Docs not loading yet?** Import the repo on Read the Docs once — see [docs/READTHEDOCS_SETUP.md](docs/READTHEDOCS_SETUP.md). Until then: [quickstart on GitHub](https://github.com/nizba06/agentguard/blob/master/docs/source/quickstart.md).
 
 AgentGuard intercepts every message between agents and enforces three runtime controls:
 
@@ -16,7 +18,7 @@ AgentGuard intercepts every message between agents and enforces three runtime co
 ```bash
 # Python 3.11 or 3.12
 pip install "inter-agent-guard[all,otel]"
-# ONNX weights are not in the wheel (~540 MB) — from a clone:
+# ONNX weights are not in the wheel (~164 MB INT8) — from a clone:
 python scripts/download_release_model.py
 # or: download risk_scorer.onnx + model.sha256 from GitHub Releases into agentguard/models/
 
@@ -48,17 +50,17 @@ Without the ONNX model, rule filtering and trust attestation still run; ML scori
 
 ## Latency and deployment modes
 
-CPU ONNX P95 is ~0.8–1.1 s (design target was 15 ms). Choose a mode that fits your budget:
+CPU ONNX P95 is ~3.4 s on holdout (design target was 15 ms). Choose a mode that fits your budget:
 
 | Mode | How | When |
 |------|-----|------|
 | **Rules-only** | `require_ml_model=False` (no ONNX) | Lowest latency; patterns + capability + trust |
 | **Monitor** | `mode="monitor"` | Shadow deploy; audit without blocking |
-| **Enforce + ML (CPU)** | `require_ml_model=True` | Highest detection; accept ~1 s P95 |
+| **Enforce + ML (CPU)** | `require_ml_model=True` | Highest detection; accept ~3 s P95 |
 | **Enforce + ML (GPU)** | Install `onnxruntime-gpu` | Lower ML latency when CUDA is available |
 | **Async / selective hops** | Rules on hot path; ML off-path | High-frequency graphs |
 
-Full guide: [docs/source/latency.md](docs/source/latency.md).
+Full guide: [Latency / deployment modes](https://inter-agent-guard.readthedocs.io/en/latest/latency.html) ([source](docs/source/latency.md)).
 
 ## Production setup
 
@@ -89,11 +91,11 @@ Full guide: [docs/source/latency.md](docs/source/latency.md).
    agentguard status
    ```
 
-3. **Optional — build benchmark dataset** (no API key):
+3. **Optional — benchmark on holdout** (v1.0 source of truth):
 
    ```powershell
-   .\scripts\run_public_dataset_build.ps1
-   .\scripts\run_benchmark_evaluation.ps1 -RequireModel
+   .\scripts\run_benchmark_evaluation.ps1 -Holdout -RequireModel
+   py -3.12 scripts/check_v1_gates.py --allow-cpu-latency
    ```
 
 4. **Run secured demo**:
@@ -179,6 +181,16 @@ Sources: InjecAgent (GitHub) + inter-agent framing templates + pipeline-style be
 
 ### Run evaluation
 
+**Holdout** (uncontaminated — use for v1.0 gating):
+
+```powershell
+.\scripts\run_benchmark_evaluation.ps1 -Holdout -RequireModel
+```
+
+Results: `benchmarks/results/holdout_report.md`
+
+Full corpus (may overlap training data — not a ship gate):
+
 ```powershell
 .\scripts\run_benchmark_evaluation.ps1 -RequireModel
 ```
@@ -197,7 +209,7 @@ Uncontaminated 20% holdout (`benchmarks/dataset/holdout/`, 160 adversarial + 1,0
 | ONNX model size | ~164 MB INT8 | < 180 MB |
 | ML model loaded | Yes (`verify_model.py` PASS) | Required for enforce+ML |
 
-Package version: **1.0.0**. CPU ML P95 does not meet the original 15 ms design target — use rules-only, GPU, or async for high-QPS (see [docs/source/latency.md](docs/source/latency.md)).
+Package version: **1.0.0**. CPU ML P95 does not meet the original 15 ms design target — use rules-only, GPU, or async for high-QPS (see [latency guide](https://inter-agent-guard.readthedocs.io/en/latest/latency.html)).
 
 ```powershell
 .\scripts\run_benchmark_evaluation.ps1 -Holdout -RequireModel
@@ -226,10 +238,9 @@ See [training/kaggle_notebook.ipynb](training/kaggle_notebook.ipynb).
 
 ## Documentation
 
-- [Sphinx API docs](docs/source/) — build with `poetry install --with docs && sphinx-build -b html docs/source docs/_build/html`
+- **[Read the Docs](https://inter-agent-guard.readthedocs.io/)** — quickstart, latency, API (import repo once: [setup guide](docs/READTHEDOCS_SETUP.md))
 - [Technical blog](docs/BLOG_POST.md)
 - [Microsoft toolkit comparison](docs/MICROSOFT_TOOLKIT_COMPARISON.md)
-- [Latency / deployment modes](docs/source/latency.md)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [REQUIREMENTS.md](docs/REQUIREMENTS.md)
 - [DESIGN.md](docs/DESIGN.md)
@@ -242,6 +253,7 @@ Build docs locally:
 ```bash
 poetry install --with docs
 sphinx-build -b html docs/source docs/_build/html
+# open docs/_build/html/index.html
 ```
 
 ## License

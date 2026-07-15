@@ -41,7 +41,7 @@ Track everything required to ship **v0.1.0** and **v1.0** follow-ons.
 | Blog | **Done** | `docs/BLOG_POST.md` |
 | Hugging Face dataset | **Done** | [Nizba/agentguard-benchmark-v1](https://huggingface.co/datasets/Nizba/agentguard-benchmark-v1) |
 | Demo repo | **Done** | Public + ONNX installer |
-| Sphinx / Read the Docs | **Done** | Import project on RTD once |
+| Sphinx / Read the Docs | **Import pending** | `docs/READTHEDOCS_SETUP.md` — slug `inter-agent-guard` |
 | vs Microsoft AGT | **Done** | Positioning + sample harness |
 
 ---

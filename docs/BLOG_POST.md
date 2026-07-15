@@ -6,7 +6,7 @@ Multi-agent systems trust messages between specialists — orchestrator, researc
 
 **Install:** `pip install inter-agent-guard` (import as `agentguard`)  
 **Repo:** https://github.com/nizba06/agentguard (public)  
-**Docs:** https://github.com/nizba06/agentguard/tree/master/docs
+**Docs:** https://inter-agent-guard.readthedocs.io/ (setup: `docs/READTHEDOCS_SETUP.md` if 404)
 
 ## Problem
 

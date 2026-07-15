@@ -1,8 +1,8 @@
 # Read the Docs configuration for AgentGuard / inter-agent-guard
 # https://docs.readthedocs.io/en/stable/config-file/v2.html
 #
-# One-time: import https://github.com/nizba06/agentguard on readthedocs.io
-# and set the project slug to inter-agent-guard (matches pyproject documentation URL).
+# One-time import: see docs/READTHEDOCS_SETUP.md
+# Target URL: https://inter-agent-guard.readthedocs.io/
 
 version: 2
 

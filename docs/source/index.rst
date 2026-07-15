@@ -6,6 +6,8 @@ Inter-agent security firewall for multi-agent AI systems
 
 **PyPI:** ``pip install inter-agent-guard`` — **import:** ``agentguard``
 
+**Documentation:** https://inter-agent-guard.readthedocs.io/
+
 .. code-block:: bash
 
    pip install "inter-agent-guard[all,otel]"
