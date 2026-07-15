@@ -36,7 +36,8 @@ class MLRiskScorer:
     def _load_injection_class_index(model_dir: Path) -> int:
         scorer_config = model_dir / "scorer_config.json"
         if scorer_config.exists():
-            return int(json.loads(scorer_config.read_text(encoding="utf-8"))["injection_class_index"])
+            data = json.loads(scorer_config.read_text(encoding="utf-8"))
+            return int(data["injection_class_index"])
         config_path = model_dir / "config.json"
         if config_path.exists():
             config = json.loads(config_path.read_text(encoding="utf-8"))

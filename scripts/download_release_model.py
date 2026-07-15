@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import shutil
-import sys
 import urllib.request
 from pathlib import Path
 
@@ -36,7 +35,7 @@ def _download(url: str, dest: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     print(f"Downloading {url}")
     print(f"  -> {dest}")
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    req = urllib.request.Request(url, headers={"User-Agent": UA})  # noqa: S310
     with urllib.request.urlopen(req, timeout=600) as resp, dest.open("wb") as out:  # noqa: S310
         shutil.copyfileobj(resp, out)
 

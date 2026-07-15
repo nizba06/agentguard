@@ -40,11 +40,13 @@ if (Test-Path $onnx) {
     Write-Host "`nOptional: full benchmark with model:" -ForegroundColor Yellow
     Write-Host "  .\scripts\run_benchmark_evaluation.ps1 -RequireModel"
 } else {
-    Write-Host "`nSKIP: verify_model.py — risk_scorer.onnx not installed" -ForegroundColor Yellow
-    Write-Host "  Install via: .\scripts\run_training.ps1 -Full"
-    Write-Host "           or: .\scripts\download_kaggle_model.ps1"
-    Write-Host "           or: .\scripts\install_model.ps1 -SourceDir <path>"
+    Write-Host ''
+    Write-Host 'SKIP: verify_model.py - risk_scorer.onnx not installed' -ForegroundColor Yellow
+    Write-Host '  Install via: .\scripts\run_training.ps1 -Full'
+    Write-Host '           or: .\scripts\download_kaggle_model.ps1'
+    Write-Host '           or: .\scripts\install_model.ps1 -SourceDir PATH'
 }
 
-Write-Host "`nAll runnable verification steps passed." -ForegroundColor Green
-Write-Host "See scripts/LAUNCH_CHECKLIST.md for remaining launch gaps (PyPI, HF, Anthropic dataset)."
+Write-Host ''
+Write-Host 'All runnable verification steps passed.' -ForegroundColor Green
+Write-Host 'See scripts/LAUNCH_CHECKLIST.md for remaining launch gaps (PyPI, HF, Anthropic dataset).'

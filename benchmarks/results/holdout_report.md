@@ -1,5 +1,5 @@
 ## AgentGuard Benchmark Results
-Generated: 2026-07-15T14:05:20.120583+00:00
+Generated: 2026-07-15T19:04:39.532864+00:00
 ML Model Loaded: Yes
 
 ## Summary
@@ -7,7 +7,7 @@ ML Model Loaded: Yes
 |--------|-------|
 | Overall detection rate | 99.4% |
 | False positive rate | 0.0% |
-| P95 inspection latency | 3356.1ms |
+| P95 inspection latency | 775.4ms |
 | Total adversarial examples | 160 |
 | Total benign examples | 1000 |
 
@@ -23,10 +23,10 @@ ML Model Loaded: Yes
 ## Detection Rate by Attack Class
 | Attack Class | Examples | Detected | Detection Rate | P95 Latency |
 |--------------|----------|----------|----------------|-------------|
-| GOAL_HIJACK | 37 | 36 | 97.3% | 1271.0ms |
-| INDIRECT_INJECTION | 43 | 43 | 100.0% | 1084.1ms |
-| MCP_POISONING | 46 | 46 | 100.0% | 1357.8ms |
-| PROPAGATION | 34 | 34 | 100.0% | 1186.3ms |
+| GOAL_HIJACK | 37 | 36 | 97.3% | 691.5ms |
+| INDIRECT_INJECTION | 43 | 43 | 100.0% | 643.3ms |
+| MCP_POISONING | 46 | 46 | 100.0% | 697.4ms |
+| PROPAGATION | 34 | 34 | 100.0% | 586.0ms |
 
 ## Detection by Layer
 | Layer | Attacks Caught | % of Total Detected |
