@@ -40,6 +40,11 @@ jobs:
       - name: Quick benchmark smoke test
         run: python benchmarks/evaluate.py --quick
 
-      - name: Verify model artifacts (optional)
+      - name: Check v1.0 holdout gates (report + skip ONNX size)
+        run: |
+          # Uses committed holdout_report.md; ONNX is not in the repo/wheel.
+          python scripts/check_v1_gates.py --allow-cpu-latency --skip-model-size
+
+      - name: Verify model artifacts (optional — needs ONNX download)
         continue-on-error: true
         run: python scripts/verify_model.py

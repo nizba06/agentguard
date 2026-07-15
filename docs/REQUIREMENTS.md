@@ -448,24 +448,23 @@ rather than implicitly trusted away.
 
 |  |  |  |
 |----|----|----|
-| **Requirement** | **v1.0 target** | **v0.1 measured (Anthropic corpus)** |
-| P95 inspection latency (CPU) | \< 15ms per message | ~805 ms – 1.06 s (ONNX DeBERTa; use rules-only / GPU / async) |
-| P95 inspection latency (GPU) | \< 4ms per message | Not yet published; `onnxruntime-gpu` supported |
-| False positive rate | \< 3% on 5,000 benign messages | 42.2% baseline; defaults raised to `risk_threshold=0.85` and `consistency_ml_risk_floor=0.40` to reduce FPR (re-measure after tune) |
-| Attack detection rate | \> 90% across attack classes | 40.2% overall (Layer 2/3 deterministic classes at 100%; ML-dependent classes lag) |
-| ONNX model size | \< 180MB (INT8) | ~164 MB dynamic INT8; FP32 ~540 MB not shipped as default |
-| Memory overhead | \< 200MB RAM excl. ONNX model | Not separately published |
-| Python version support | 3.11, 3.12 | 3.11, 3.12 only (`python = ">=3.11,<3.13"`); 3.10 dropped |
-| Framework support | LangGraph ≥0.2; CrewAI ≥0.70; AutoGen ≥0.4 | Optional extras; same version floors |
-| Operating system support | Linux (primary); macOS; Windows | Linux / macOS / Windows |
-| Licence | Apache 2.0 | Apache 2.0 |
-| Test coverage | \> 85% line coverage | 87.4% |
-| Startup overhead | \< 500ms for up to 20 agents | Not separately published |
-| Documentation | Full API reference; quick-start \< 5 minutes | README + Sphinx docs + latency guide |
+| **Requirement** | **v1.0 target** | **v0.1 measured (full corpus)** | **v1.0 holdout (INT8)** |
+| P95 inspection latency (CPU) | \< 15ms per message | ~805 ms – 1.06 s | ~3.4 s; GPU/async/rules-only SLA — see `docs/source/latency.md` |
+| P95 inspection latency (GPU) | \< 4ms per message | Not yet published; `onnxruntime-gpu` supported | Not yet published |
+| False positive rate | \< 3% on benign messages | 42.2% baseline (pre-tune) | **0.0%** (1,000 holdout benign) |
+| Attack detection rate | \> 90% across attack classes | 40.2% overall | **99.4%** (160 holdout content attacks) |
+| ONNX model size | \< 180MB (INT8) | ~540 MB FP32 (not default) | **~164 MB** dynamic INT8 |
+| Memory overhead | \< 200MB RAM excl. ONNX model | Not separately published | Not separately published |
+| Python version support | 3.11, 3.12 | 3.11, 3.12 only (`python = ">=3.11,<3.13"`); 3.10 dropped | 3.11, 3.12 |
+| Framework support | LangGraph ≥0.2; CrewAI ≥0.70; AutoGen ≥0.4 | Optional extras; same version floors | Same |
+| Operating system support | Linux (primary); macOS; Windows | Linux / macOS / Windows | Same |
+| Licence | Apache 2.0 | Apache 2.0 | Apache 2.0 |
+| Test coverage | \> 85% line coverage | 87.4% | ≥ 85% (CI) |
+| Startup overhead | \< 500ms for up to 20 agents | Not separately published | Not separately published |
+| Documentation | Full API reference; quick-start \< 5 minutes | README + Sphinx docs + latency guide | Same + v1.0 release notes |
 
-Targets above remain the product goals. v0.1 must not be marketed as meeting
-the latency, detection-rate, FPR, or model-size targets; use monitor mode or
-rules-only until ML quality and ONNX size improve.
+Holdout (`benchmarks/results/holdout_report.md`) is the ship authority for detection/FPR.
+CPU P95 does not meet the 15 ms design target; production high-QPS must use rules-only, GPU, or async.
 
 **7. System Architecture**
 
@@ -884,23 +883,22 @@ publishable contribution to the field.
 
 |  |  |  |
 |----|----|----|
-| **Metric** | **v1.0 target** | **v0.1 measured** |
-| Attack detection rate — Indirect Prompt Injection | \> 90% | 11.0% |
-| Attack detection rate — Agent-to-Agent Propagation | \> 88% | 4.0% |
-| Attack detection rate — Rogue Agent Impersonation | 100% (deterministic Layer 2) | 100% |
-| Attack detection rate — Capability Escalation | 100% (deterministic Layer 3) | 100% |
-| Attack detection rate — MCP Output Poisoning | \> 88% | 9.5% |
-| Attack detection rate — Goal Hijack | \> 88% | 17.0% |
-| Overall attack detection rate | \> 90% | 40.2% |
-| False positive rate (benign corpus) | \< 3% | 42.2% (pre-threshold-tune baseline) |
-| P95 inspection latency (CPU, all three layers) | \< 15ms | ~805 ms |
-| P95 inspection latency (GPU, all three layers) | \< 4ms | Not yet published |
-| Pipeline initialisation overhead (20 agents) | \< 500ms | Not separately published |
+| **Metric** | **v1.0 target** | **v0.1 measured (full corpus)** | **v1.0 holdout (INT8)** |
+| Attack detection rate — Indirect Prompt Injection | \> 90% | 11.0% | 100% |
+| Attack detection rate — Agent-to-Agent Propagation | \> 88% | 4.0% | 100% |
+| Attack detection rate — Rogue Agent Impersonation | 100% (deterministic Layer 2) | 100% | 100% (full suite; not in content holdout) |
+| Attack detection rate — Capability Escalation | 100% (deterministic Layer 3) | 100% | 100% (full suite; not in content holdout) |
+| Attack detection rate — MCP Output Poisoning | \> 88% | 9.5% | 100% |
+| Attack detection rate — Goal Hijack | \> 88% | 17.0% | 97.3% |
+| Overall attack detection rate | \> 90% | 40.2% | **99.4%** (holdout content attacks) |
+| False positive rate (benign corpus) | \< 3% | 42.2% (pre-threshold-tune baseline) | **0.0%** (1,000 holdout) |
+| P95 inspection latency (CPU, all three layers) | \< 15ms | ~805 ms | ~3.4 s (SLA: GPU/async/rules-only) |
+| P95 inspection latency (GPU, all three layers) | \< 4ms | Not yet published | Not yet published |
+| Pipeline initialisation overhead (20 agents) | \< 500ms | Not separately published | Not separately published |
 
-Measured figures are from `benchmarks/results/report.md` (Anthropic v1.0
-corpus, ML model loaded, prior defaults). Re-run
-`scripts/run_benchmark_evaluation.ps1 -RequireModel` after threshold/rule
-changes to refresh numbers.
+**Authority:** `benchmarks/results/holdout_report.md` + `scripts/check_v1_gates.py --allow-cpu-latency`.
+v0.1 full-corpus figures are historical. Refresh holdout with
+`.\scripts\run_benchmark_evaluation.ps1 -Holdout -RequireModel` after model or threshold changes.
 
 **12.2 Software Quality**
 
